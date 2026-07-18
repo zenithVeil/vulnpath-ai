@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VulnPath AI</title>
+  <style>
+    :root {
+      --bg: #07110d;
+      --panel: #0d1c16;
+      --panel-2: #10261d;
+      --accent: #30ff9c;
+      --accent-2: #19c8ff;
+      --danger: #ff4d6d;
+      --warning: #ffd166;
+      --text: #d7ffe8;
+      --muted: #80a894;
+      --border: rgba(48, 255, 156, 0.25);
+      --shadow: 0 0 40px rgba(48, 255, 156, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(25, 200, 255, 0.12), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(48, 255, 156, 0.09), transparent 30%),
+        linear-gradient(135deg, #030706 0%, var(--bg) 55%, #020403 100%);
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(48, 255, 156, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(48, 255, 156, 0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, black, transparent 85%);
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-start;
+      margin-bottom: 26px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 6vw, 4.5rem);
+      letter-spacing: -0.06em;
+      line-height: 0.92;
+      text-shadow: 0 0 24px rgba(48, 255, 156, 0.22);
+    }
+
+    .brand p { color: var(--muted); margin: 14px 0 0; max-width: 720px; }
+
+    .status-card {
+      border: 1px solid var(--border);
+      background: rgba(13, 28, 22, 0.72);
+      border-radius: 18px;
+      padding: 16px;
+      min-width: 220px;
+      box-shadow: var(--shadow);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      color: var(--accent);
+    }
+
+    .status-card span { display: block; color: var(--muted); font-size: 0.8rem; margin-bottom: 8px; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 20px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(13, 28, 22, 0.92), rgba(8, 17, 13, 0.92));
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-title {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--accent);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92rem;
+    }
+
+    .samples { display: grid; gap: 10px; padding: 18px; }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(16, 38, 29, 0.9);
+      color: var(--text);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+      font-weight: 700;
+    }
+
+    button:hover { transform: translateY(-1px); border-color: var(--accent); background: rgba(48, 255, 156, 0.1); }
+
+    .sample-btn { text-align: left; color: var(--muted); }
+    .sample-btn strong { display: block; color: var(--text); margin-bottom: 4px; }
+
+    textarea {
+      width: calc(100% - 36px);
+      min-height: 430px;
+      margin: 0 18px 14px;
+      padding: 16px;
+      resize: vertical;
+      background: #020706;
+      color: #c9ffe1;
+      border: 1px solid rgba(128, 168, 148, 0.28);
+      border-radius: 14px;
+      font: 0.92rem/1.5 "SFMono-Regular", Consolas, monospace;
+      outline: none;
+    }
+
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48, 255, 156, 0.08); }
+
+    .input-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 18px 18px;
+    }
+
+    .char-count { color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.85rem; }
+
+    #analyzeBtn {
+      min-width: 150px;
+      background: linear-gradient(135deg, rgba(48, 255, 156, 0.95), rgba(25, 200, 255, 0.9));
+      color: #00150b;
+      border: none;
+      box-shadow: 0 0 30px rgba(48, 255, 156, 0.2);
+    }
+
+    .tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); }
+
+    .tab {
+      border: 0;
+      border-right: 1px solid rgba(48, 255, 156, 0.16);
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 15px 8px;
+    }
+
+    .tab.active { color: var(--accent); background: rgba(48, 255, 156, 0.08); }
+
+    .results { padding: 20px; min-height: 560px; }
+    .result-pane { display: none; }
+    .result-pane.active { display: block; animation: fade 0.18s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    .empty-state { color: var(--muted); text-align: center; padding: 96px 20px; border: 1px dashed rgba(128, 168, 148, 0.3); border-radius: 16px; }
+
+    .finding, .impact-card, .step, .code-block {
+      border: 1px solid rgba(128, 168, 148, 0.22);
+      background: rgba(2, 7, 6, 0.58);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .finding.high { border-color: rgba(255, 77, 109, 0.55); }
+    .finding.medium { border-color: rgba(255, 209, 102, 0.48); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+    .badge.high { background: rgba(255, 77, 109, 0.16); color: var(--danger); }
+    .badge.medium { background: rgba(255, 209, 102, 0.14); color: var(--warning); }
+    .badge.low { background: rgba(25, 200, 255, 0.14); color: var(--accent-2); }
+
+    h2, h3 { margin-top: 0; }
+    .meta { color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.86rem; }
+    .step { display: grid; grid-template-columns: 38px 1fr; gap: 12px; align-items: start; }
+    .step-num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: rgba(48, 255, 156, 0.14); color: var(--accent); font-weight: 900; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; color: #d8ffe9; font: 0.86rem/1.5 "SFMono-Regular", Consolas, monospace; }
+    .impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .impact-card strong { display: block; color: var(--accent); font-size: 1.6rem; margin-bottom: 8px; }
+    footer { text-align: center; color: var(--muted); padding: 28px 0 10px; font-family: "SFMono-Regular", Consolas, monospace; }
+
+    @media (max-width: 900px) {
+      header, .workspace { grid-template-columns: 1fr; display: grid; }
+      .tabs { grid-template-columns: 1fr 1fr; }
+      .impact-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <main>
+    <header>
+      <div class="brand">
+        <h1>VulnPath AI</h1>
+        <p>Browser-only security analysis for hackathon demos. Paste code, detect common vulnerability patterns, and generate executive-ready attack paths and remediation guidance.</p>
+      </div>
+      <div class="status-card"><span>SYSTEM STATUS</span>LOCAL DEMO ENGINE ONLINE<br />NO SERVER REQUIRED</div>
+    </header>
+
+    <section class="workspace">
+      <div class="panel">
+        <div class="panel-title"><span>INPUT_BUFFER</span><span id="limitLabel">0 / 5000</span></div>
+        <div class="samples">
+          <button class="sample-btn" data-sample="flask"><strong>Load Sample 1</strong>SQL Injection in a Python Flask login endpoint</button>
+          <button class="sample-btn" data-sample="xss"><strong>Load Sample 2</strong>Stored XSS in a Node.js comment form</button>
+          <button class="sample-btn" data-sample="secrets"><strong>Load Sample 3</strong>Hardcoded credentials in a JavaScript config file</button>
+        </div>
+        <textarea id="codeInput" maxlength="5000" spellcheck="false" placeholder="Paste source code here..."></textarea>
+        <div class="input-actions">
+          <span class="char-count" id="charCount">Awaiting code sample</span>
+          <button id="analyzeBtn">Analyze</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="vulnerabilities">Vulnerabilities</button>
+          <button class="tab" data-tab="attack">Attack Path</button>
+          <button class="tab" data-tab="impact">Business Impact</button>
+          <button class="tab" data-tab="secure">Secure Code</button>
+        </div>
+        <div class="results">
+          <div id="vulnerabilities" class="result-pane active"><div class="empty-state">Run an analysis to populate vulnerability findings.</div></div>
+          <div id="attack" class="result-pane"><div class="empty-state">Attack chain simulation will appear here.</div></div>
+          <div id="impact" class="result-pane"><div class="empty-state">Business risk summary will appear here.</div></div>
+          <div id="secure" class="result-pane"><div class="empty-state">Secure replacement code will appear here.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <footer>Built for OpenAI Build Week 2026 — $0 Budget</footer>
+  </main>
+
+  <script>
+    const samples = {
+      flask: `from flask import Flask, request\nimport sqlite3\n\napp = Flask(__name__)\n\n@app.route('/login', methods=['POST'])\ndef login():\n    username = request.form['username']\n    password = request.form['password']\n    conn = sqlite3.connect('users.db')\n    query = "SELECT * FROM users WHERE username = '" + username + "' AND password = '" + password + "'"\n    user = conn.execute(query).fetchone()\n    if user:\n        return "Welcome " + username\n    return "Invalid login", 401`,
+      xss: `const express = require('express');\nconst app = express();\nlet comments = [];\n\napp.post('/comment', (req, res) => {\n  const comment = req.body.comment;\n  comments.push(comment);\n  res.redirect('/comments');\n});\n\napp.get('/comments', (req, res) => {\n  const html = comments.map(c => '<li>' + c + '</li>').join('');\n  res.send('<h1>Comments</h1><ul>' + html + '</ul>');\n});`,
+      secrets: `const config = {\n  apiUrl: 'https://api.production.example.com',\n  apiKey: 'sk_live_51HARD_CODED_DEMO_KEY',\n  dbPassword: 'SuperSecretPassword123!',\n  awsSecretAccessKey: 'AKIAIOSFODNN7EXAMPLE',\n  jwtSecret: 'demo-jwt-signing-secret'\n};\n\nmodule.exports = config;`
+    };
+
+    const fixes = {
+      sqli: `# Use parameterized queries instead of string concatenation\nquery = "SELECT * FROM users WHERE username = ? AND password = ?"\nuser = conn.execute(query, (username, password)).fetchone()`,
+      xss: `// Escape user-controlled content before rendering\nconst escapeHtml = value => String(value)\n  .replaceAll('&', '&amp;')\n  .replaceAll('<', '&lt;')\n  .replaceAll('>', '&gt;')\n  .replaceAll('"', '&quot;')\n  .replaceAll("'", '&#039;');\nconst html = comments.map(c => '<li>' + escapeHtml(c) + '</li>').join('');`,
+      secrets: `// Load secrets from the runtime environment\nconst config = {\n  apiUrl: process.env.API_URL,\n  apiKey: process.env.API_KEY,\n  dbPassword: process.env.DB_PASSWORD,\n  awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,\n  jwtSecret: process.env.JWT_SECRET\n};`,
+      cmd: `// Avoid shell interpolation; pass arguments as an array\nconst { execFile } = require('child_process');\nexecFile('git', ['log', '--oneline', safeBranchName], callback);`
+    };
+
+    const detectors = [
+      { key: 'sqli', name: 'SQL Injection', severity: 'high', cvss: '9.1', pattern: /(SELECT|UPDATE|DELETE|INSERT).*('|\")\s*\+|\+\s*(username|password|req\.|request\.)/i, lineHint: /(SELECT|UPDATE|DELETE|INSERT)/i },
+      { key: 'xss', name: 'Stored Cross-Site Scripting', severity: 'high', cvss: '8.2', pattern: /(res\.send|innerHTML|\.html\().*(\+|\$\{)|(comments\.push\(|localStorage\.)/is, lineHint: /(res\.send|innerHTML|comments\.push|\.html\()/i },
+      { key: 'secrets', name: 'Hardcoded Secret', severity: 'medium', cvss: '7.5', pattern: /(api[_-]?key|password|secret|token|AKIA)[\w\s:=\-"']{0,40}([A-Za-z0-9_\-!]{12,})/i, lineHint: /(api[_-]?key|password|secret|token|AKIA)/i },
+      { key: 'cmd', name: 'Command Injection', severity: 'high', cvss: '8.8', pattern: /(exec|spawn|system|popen)\s*\([^)]*(\+|\$\{|req\.|request\.)/i, lineHint: /(exec|spawn|system|popen)/i }
+    ];
+
+    const codeInput = document.getElementById('codeInput');
+    const limitLabel = document.getElementById('limitLabel');
+    const charCount = document.getElementById('charCount');
+
+    document.querySelectorAll('.sample-btn').forEach(btn => btn.addEventListener('click', () => {
+      codeInput.value = samples[btn.dataset.sample];
+      updateCount();
+    }));
+
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab, .result-pane').forEach(el => el.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    }));
+
+    codeInput.addEventListener('input', updateCount);
+    document.getElementById('analyzeBtn').addEventListener('click', analyze);
+    updateCount();
+
+    function updateCount() {
+      const count = codeInput.value.length;
+      limitLabel.textContent = `${count} / 5000`;
+      charCount.textContent = count ? `${count} characters loaded` : 'Awaiting code sample';
+    }
+
+    function lineFor(code, regex) {
+      const lines = code.split('\n');
+      const index = lines.findIndex(line => regex.test(line));
+      return index === -1 ? 1 : index + 1;
+    }
+
+    function analyze() {
+      const code = codeInput.value.trim();
+      if (!code) return;
+      const findings = detectors.filter(d => d.pattern.test(code)).map(d => ({ ...d, line: lineFor(code, d.lineHint) }));
+      if (!findings.length) findings.push({ key: 'clean', name: 'No critical pattern detected', severity: 'low', cvss: '0.0', line: 1 });
+      renderVulnerabilities(findings);
+      renderAttack(findings);
+      renderImpact(findings);
+      renderSecure(findings, code);
+    }
+
+    function renderVulnerabilities(findings) {
+      document.getElementById('vulnerabilities').innerHTML = findings.map(f => `
+        <article class="finding ${f.severity}">
+          <span class="badge ${f.severity}">${f.severity}</span>
+          <h3>${f.name}</h3>
+          <p class="meta">Detected near line ${f.line} • Confidence: ${f.key === 'clean' ? 'Informational' : 'High'} • CVSS ${f.cvss}</p>
+          <p>${descriptionFor(f.key)}</p>
+        </article>`).join('');
+    }
+
+    function renderAttack(findings) {
+      const primary = findings[0];
+      const steps = attackSteps(primary.key);
+      document.getElementById('attack').innerHTML = steps.map((step, i) => `
+        <div class="step"><div class="step-num">${i + 1}</div><div><h3>${step.title}</h3><p>${step.body}</p></div></div>`).join('');
+    }
+
+    function renderImpact(findings) {
+      const max = findings.reduce((a, f) => Math.max(a, parseFloat(f.cvss)), 0).toFixed(1);
+      const high = findings.some(f => f.severity === 'high');
+      document.getElementById('impact').innerHTML = `
+        <div class="impact-grid">
+          <div class="impact-card"><strong>${max}</strong><span>CVSS v3.1 estimated base score</span></div>
+          <div class="impact-card"><strong>${high ? 'High' : 'Moderate'}</strong><span>Data exposure risk from exploitability and blast radius</span></div>
+          <div class="impact-card"><strong>${high ? 'PCI / SOC 2 / GDPR' : 'Policy Review'}</strong><span>Potential compliance impact requiring evidence of remediation</span></div>
+        </div>
+        <article class="finding"><h3>Executive Summary</h3><p>${high ? 'The analyzed code contains externally triggerable weaknesses that could enable account takeover, data theft, or persistent client-side compromise.' : 'No immediately critical pattern was detected, but secure review and dependency scanning are still recommended before production release.'}</p></article>`;
+    }
+
+    function renderSecure(findings, code) {
+      const unique = [...new Set(findings.map(f => f.key).filter(k => fixes[k]))];
+      const remediation = unique.length ? unique.map(k => `<div class="code-block"><h3>${detectors.find(d => d.key === k).name} Fix</h3><pre>${escapeHtml(fixes[k])}</pre><p>${remediationFor(k)}</p></div>`).join('') : `<div class="code-block"><h3>Secure Review</h3><pre>${escapeHtml(code)}</pre><p>No demo rule fired. Continue with threat modeling, peer review, dependency scanning, and automated tests.</p></div>`;
+      document.getElementById('secure').innerHTML = remediation;
+    }
+
+    function descriptionFor(key) {
+      return ({
+        sqli: 'User-controlled input appears to be concatenated into a SQL statement, allowing attackers to alter query logic and bypass authentication or extract records.',
+        xss: 'Untrusted comment content is stored and rendered into HTML without output encoding, enabling persistent JavaScript execution in other users\' browsers.',
+        secrets: 'Sensitive credentials appear directly in source code, increasing the likelihood of credential theft through repository access, logs, or client bundles.',
+        cmd: 'User-controlled data appears to reach an operating-system command sink, creating a path to arbitrary command execution.',
+        clean: 'The demo scanner did not identify SQL injection, XSS, hardcoded secret, or command injection signatures.'
+      })[key];
+    }
+
+    function attackSteps(key) {
+      const map = {
+        sqli: [['Recon', 'Attacker finds the login form and submits crafted username payloads.'], ['Exploit', 'A payload such as an always-true predicate changes the SQL WHERE clause.'], ['Privilege Gain', 'The application returns a valid user session without knowing the password.'], ['Impact', 'The attacker enumerates records or pivots to administrative accounts.']],
+        xss: [['Seed Payload', 'Attacker posts a comment containing script-like HTML.'], ['Persistence', 'The payload is saved and displayed to every visitor of the comments page.'], ['Session Theft', 'Victim browser executes attacker-controlled JavaScript in the trusted origin.'], ['Expansion', 'The attacker performs actions as the victim or exfiltrates sensitive page data.']],
+        secrets: [['Source Access', 'Attacker obtains a repository copy, client bundle, or leaked artifact.'], ['Credential Harvest', 'Hardcoded API keys and passwords are extracted with simple pattern searches.'], ['Cloud/API Abuse', 'The credentials are tested against production services.'], ['Business Damage', 'Unauthorized access causes data exposure, service abuse, and emergency key rotation.']],
+        cmd: [['Entry Point', 'Attacker identifies an API parameter passed toward a shell command.'], ['Payload Crafting', 'Shell metacharacters are appended to execute unintended commands.'], ['Execution', 'The server runs the injected command with application privileges.'], ['Post-Exploitation', 'The attacker reads files, plants persistence, or moves laterally.']],
+        clean: [['Review', 'No critical demo signature was found.'], ['Validate', 'Run deeper static analysis and tests.'], ['Harden', 'Apply least privilege, logging, and secure defaults.'], ['Monitor', 'Track suspicious inputs and runtime anomalies.']]
+      };
+      return map[key].map(([title, body]) => ({ title, body }));
+    }
+
+    function remediationFor(key) {
+      return ({
+        sqli: 'Prepared statements keep data separate from query structure and stop attacker input from changing SQL logic.',
+        xss: 'Context-aware output encoding neutralizes HTML and script payloads before content reaches the browser.',
+        secrets: 'Environment-managed secrets allow rotation, scoped access, and separation between source code and credentials.',
+        cmd: 'Avoid shell execution; if a command is required, use fixed executables, argument arrays, and strict allowlists.'
+      })[key];
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+    }
+  </script>
+</body>
+</html>
