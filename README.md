@@ -1,13 +1,7 @@
 # vulnpath-ai
 
-Static project site for `vulnpath-ai`, configured for GitHub Pages.
+VulnPath AI is a security analysis assistant configuration for producing structured vulnerability reports from source code reviews.
 
-## GitHub Pages
+## System Prompt
 
-This repository includes a GitHub Actions workflow that publishes the repository
-root as a static GitHub Pages site whenever changes are pushed to `main`.
-
-After this change is merged, confirm the repository's Pages source is set to
-**GitHub Actions** in the repository settings. The site will be available at:
-
-<https://username.github.io/vulnpath-ai/>
+The canonical system prompt is maintained in [`SYSTEM_PROMPT.md`](SYSTEM_PROMPT.md).
