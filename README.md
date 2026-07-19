@@ -1,2 +1,2 @@
 # VulnPath AI
-The expected GitHub Pages URL is: http://username.github.io/vulnpath-ai/
+The expected GitHub Pages URL is: http://zenithVeil.github.io/vulnpath-ai/
