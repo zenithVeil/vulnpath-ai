@@ -51,8 +51,8 @@ Return your analysis as a JSON object with this exact structure:
   "file": "filename.ext",
   "analysis_date": "YYYY-MM-DD HH:MM:SS",
   "summary": {
-    "total_vulnerabilities": 0,
-    "critical": 0,
+    "total_vulnerabilities": 1,
+    "critical": 1,
     "high": 0,
     "medium": 0,
     "low": 0
