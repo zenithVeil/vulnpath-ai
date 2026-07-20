@@ -91,14 +91,14 @@
         <div class="section">
             <h2>What It Does</h2>
             <div class="card">
-                <p>VulnPath AI is an AI-powered security analysis assistant. You paste code, and it produces a structured report with:</p>
+                <p>VulnPath AI is an AI-powered security analysis assistant. You paste code, and it produces a machine-readable JSON report with:</p>
                 <ul style="margin-top: 12px; padding-left: 20px; color: #94a3b8;">
-                    <li>🔍 Vulnerability identification with CVSS v4 scores</li>
-                    <li>🔗 Step-by-step attack paths (exact payloads and exploitation chains)</li>
-                    <li>💰 Business impact analysis (data at risk, compliance, estimated cost)</li>
-                    <li>✅ Secure code with the vulnerability patched</li>
-                    <li>📚 Educational explanations ("Why This Matters")</li>
-                    <li>📊 Summary table with overall security score</li>
+                    <li>🔍 Vulnerability identification with CWE IDs, severity, confidence, and priority scores</li>
+                    <li>🔗 Reachable path analysis from user input to sensitive operations</li>
+                    <li>💥 Exploitability and impact assessments for prioritization</li>
+                    <li>✅ Concrete remediation guidance and secure coding alternatives</li>
+                    <li>📚 Secure coding recommendations aligned to common vulnerability classes</li>
+                    <li>📊 JSON summary counts by severity for automation</li>
                 </ul>
             </div>
         </div>
@@ -120,7 +120,7 @@
                 </li>
                 <li>
                     <strong>Get Your Report</strong><br>
-                    Attack paths, CVSS scores, business impact, secure code, and security score
+                    CWE mappings, line numbers, path analysis, priority scores, and remediation guidance
                 </li>
             </ol>
         </div>
