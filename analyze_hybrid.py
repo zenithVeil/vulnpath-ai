@@ -17,7 +17,12 @@ class VulnPathAI:
                         r"SELECT.*\+.*input",
                         r"execute\s*\(.*\+.*\)",
                         r"cursor\.execute\s*\(.*%.*\)",
-                        r"SELECT.*%s.*%"
+                        r"SELECT.*%s.*%",
+                        r"f['\"].*SELECT.*\{.*\}",
+                        r"cursor\.execute\(.*f['\"]",
+                        r"db\.execute\(.*f['\"]",
+                        r"execute\(.*['\"].*\{.*\}.*['\"]\)",
+                        r"f['\"].*SELECT.*\{.*\}.*['\"]"
                     ],
                     'description': 'SQL Injection: User input concatenated into SQL query',
                     'fix': 'Use parameterized queries: cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))',
@@ -122,20 +127,24 @@ class VulnPathAI:
             }
         }
     
-    def pattern_based_detection(self, code, language):
+    def pattern_based_detection(self, code, language, lines=None):
         vulnerabilities = []
         patterns = self.patterns.get(language, {})
+        code_lines = lines if lines is not None else code.splitlines()
         
         for vuln_type, vuln_info in patterns.items():
-            matched = False
+            matched_patterns = set()
+            matching_lines = set()
             for pattern in vuln_info['patterns']:
-                if re.search(pattern, code, re.IGNORECASE):
-                    matched = True
-                    break
+                for line_number, line in enumerate(code_lines, 1):
+                    if re.search(pattern, line, re.IGNORECASE):
+                        matched_patterns.add(pattern)
+                        matching_lines.add(line_number)
             
-            if matched:
-                match_count = sum(1 for p in vuln_info['patterns'] if re.search(p, code, re.IGNORECASE))
+            if matching_lines:
+                match_count = len(matched_patterns)
                 confidence = min(0.95, 0.7 + (match_count * 0.05))
+                sorted_lines = sorted(matching_lines)
                 
                 vulnerabilities.append({
                     'cwe_id': vuln_info['cwe'],
@@ -144,6 +153,8 @@ class VulnPathAI:
                     'suggestion': vuln_info['fix'],
                     'vulnerability_type': vuln_type.replace('_', ' ').title(),
                     'confidence': confidence,
+                    'line': sorted_lines[0],
+                    'lines': sorted_lines,
                     'example_attack': vuln_info.get('example_attack', 'N/A'),
                     'impact': vuln_info.get('impact', 'N/A')
                 })
@@ -212,7 +223,8 @@ class VulnPathAI:
         
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                code = f.read()
+                lines = f.readlines()
+                code = ''.join(lines)
         except Exception as e:
             return {"error": str(e)}
         
@@ -224,7 +236,7 @@ class VulnPathAI:
         if language == 'unknown':
             return {"error": f"Unsupported language: {ext}"}
         
-        vulnerabilities = self.pattern_based_detection(code, language)
+        vulnerabilities = self.pattern_based_detection(code, language, lines)
         vulnerabilities = self.prioritize_vulnerabilities(vulnerabilities)
         
         severity_counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
@@ -294,6 +306,7 @@ class VulnPathAI:
             for i, v in enumerate(vulns, 1):
                 report_lines.append(f"### {i}. {v.get('vulnerability_type', 'Unknown Vulnerability')}")
                 report_lines.append(f"- **CWE:** {v.get('cwe_id', 'Unknown')}")
+                report_lines.append(f"- **Line(s):** {v.get('lines', [])}")
                 report_lines.append(f"- **Severity:** {v.get('severity', 'Unknown')} (Priority Score: {v.get('priority_score', 5):.1f}/10)")
                 report_lines.append(f"- **Confidence:** {v.get('confidence', 0.85):.1%}")
                 report_lines.append(f"- **Exploitability:** {v.get('exploitability', 'Medium')}")
@@ -342,10 +355,12 @@ class VulnPathAI:
 
         report_lines.append("")
         report_lines.append("## 📊 Vulnerability Summary Table")
-        report_lines.append("| # | CWE | Vulnerability | Severity | Priority | Confidence |")
-        report_lines.append("|---|-----|--------------|----------|----------|------------|")
+        report_lines.append("| # | CWE | Vulnerability | Location | Severity | Priority | Confidence |")
+        report_lines.append("|---|-----|---------------|----------|----------|----------|------------|")
         for i, v in enumerate(vulns, 1):
-            report_lines.append(f"| {i} | {v.get('cwe_id', 'Unknown')} | {v.get('vulnerability_type', 'Unknown')} | {v.get('severity', 'Unknown')} | {v.get('priority_score', 5):.1f}/10 | {v.get('confidence', 0.85):.1%} |")
+            line_numbers = v.get('lines', [])
+            location = ', '.join(f"{findings.get('file', 'Unknown')}:{line}" for line in line_numbers) if line_numbers else findings.get('file', 'Unknown')
+            report_lines.append(f"| {i} | {v.get('cwe_id', 'Unknown')} | {v.get('vulnerability_type', 'Unknown')} | {location} | {v.get('severity', 'Unknown')} | {v.get('priority_score', 5):.1f}/10 | {v.get('confidence', 0.85):.1%} |")
 
         report_lines.append("")
         report_lines.append("## 🎯 Recommendation Summary")
