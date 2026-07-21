@@ -4,9 +4,9 @@
 [![OpenAI Build Week](https://img.shields.io/badge/OpenAI-Build%20Week-purple)](https://openai.com/build-week)
 [![Python](https://img.shields.io/badge/Python-3.6+-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-100%25-brightgreen)](test_results.json)
+[![Tests](https://img.shields.io/badge/Tests-Verified-blue)](test_results.json)
 
-> **AI-powered security vulnerability detection with path analysis, business impact scoring, and 100% accuracy**
+> **AI-powered security vulnerability detection with path analysis, business impact scoring, and verified detection across 3 vulnerability classes**
 
 ---
 
@@ -120,12 +120,32 @@ VulnPath-AI uses **pattern-based detection** with intelligent analysis:
 
 text
 
+
+## 🤖 GPT-5.6 Integration
+
+VulnPath-AI has two analysis modes:
+
+### Mode 1: Quick Scan (regex-based)
+`python analyze_hybrid.py file.py` — Fast pattern matching for immediate results
+
+### Mode 2: Deep AI Analysis (GPT-5.6)
+`python analyze_hybrid.py file.py --ai` — Generates a ready-to-use prompt for GPT-5.6
+
+Copy the output into ChatGPT or Codex with the SYSTEM_PROMPT.md configured, and GPT-5.6 will produce a detailed report with:
+- Attack paths specific to your code
+- CVSS v4 scoring
+- Business impact analysis
+- Secure code suggestions
+- Educational explanations
+
+**Built with:** Codex managed the repository, CLI tool, and workflow. GPT-5.6 Terra powers the deep security analysis when using Mode 2.
+
 ### Why Pattern Matching?
 
 | Aspect | Benefit |
 |--------|---------|
 | ⚡ **Speed** | < 1 second per file |
-| 🎯 **Accuracy** | 100% on test cases |
+| 🎯 **Accuracy** | Verified detection across 3 vulnerability classes |
 | 📦 **No Training** | Works immediately, no dataset needed |
 | 🔒 **Deterministic** | Same results every time |
 | 🌍 **Universal** | Works on ANY codebase |
@@ -379,7 +399,7 @@ Prioritizer	Ranks vulnerabilities by severity
 Report Generator	Creates JSON and Markdown reports
 🧪 Testing & Validation
 Benchmark Results
-Your tool has been tested on 3 vulnerability classes with 100% accuracy:
+Your tool has been tested with verified detection across 3 vulnerability classes:
 
 text
 📊 Performance Metrics:

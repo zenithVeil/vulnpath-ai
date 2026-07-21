@@ -365,6 +365,50 @@ class VulnPathAI:
         
         return "\n".join(report_lines)
 
+
+def build_ai_prompt(target_path, interactive=False):
+    script_dir = Path(__file__).resolve().parent
+    system_prompt_path = script_dir / "SYSTEM_PROMPT.md"
+
+    with open(system_prompt_path, 'r', encoding='utf-8') as f:
+        system_prompt = f.read()
+
+    with open(target_path, 'r', encoding='utf-8') as f:
+        target_code = f.read()
+
+    header = """
+╔══════════════════════════════════════════════════════╗
+║  VulnPath-AI — GPT-5.6 Analysis Mode               ║
+╚══════════════════════════════════════════════════════╝
+
+Step 1: Open ChatGPT or Codex (chat.openai.com)
+Step 2: Paste the SYSTEM_PROMPT.md content below
+Step 3: Paste the target code below
+Step 4: GPT-5.6 will analyze it with attack paths, CVSS, business impact
+""".strip("\n")
+
+    sections = [
+        header,
+        "─── SYSTEM PROMPT ───\n" + system_prompt,
+        "─── CODE TO ANALYZE ───\n" + target_code,
+        "── END ──",
+    ]
+
+    if interactive:
+        prompts = [
+            "Press Enter to show the GPT-5.6 analysis instructions...",
+            "Press Enter to show SYSTEM_PROMPT.md...",
+            "Press Enter to show the target code...",
+            "Press Enter to finish...",
+        ]
+        for prompt, section in zip(prompts, sections):
+            input(prompt)
+            print(section)
+            print()
+    else:
+        print("\n\n".join(sections))
+
+
 def main():
     import argparse
     
@@ -374,8 +418,16 @@ def main():
     parser.add_argument('--recursive', '-r', action='store_true', help='Recursive scan')
     parser.add_argument('--format', '-f', choices=['json', 'markdown'], default='markdown')
     parser.add_argument('--output', '-o', help='Output file')
+    parser.add_argument('--ai', '-a', action='store_true', help='Generate a prompt for GPT-5.6 analysis instead of regex scanning')
+    parser.add_argument('--interactive', action='store_true', help='Generate the GPT-5.6 prompt step by step with prompts')
     
     args = parser.parse_args()
+    if args.ai or args.interactive:
+        if os.path.isdir(args.path):
+            parser.error('--ai/--interactive mode requires a single target code file')
+        build_ai_prompt(args.path, interactive=args.interactive)
+        return
+
     analyzer = VulnPathAI()
     
     if os.path.isdir(args.path):
