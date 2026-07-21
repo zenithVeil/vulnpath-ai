@@ -3,6 +3,10 @@ import os
 import json
 import sys
 import re
+import ast
+import py_compile
+import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -22,7 +26,15 @@ class VulnPathAI:
                         r"cursor\.execute\(.*f['\"]",
                         r"db\.execute\(.*f['\"]",
                         r"execute\(.*['\"].*\{.*\}.*['\"]\)",
-                        r"f['\"].*SELECT.*\{.*\}.*['\"]"
+                        r"f['\"].*SELECT.*\{.*\}.*['\"]",
+                        r"f['\"]{3}.*?SELECT.*?\{.*?\}.*?['\"]{3}",
+                        r"text\(.*f['\"]",
+                        r"session\.execute\(.*f['\"]",
+                        r"\.raw\(.*f['\"]",
+                        r"connection\.execute\(.*f['\"]",
+                        r"\.filter\(.*f['\"]",
+                        r"format\(.*\{.*\}.*\)",
+                        r"['\"].*\%s.*['\"]\s*\%"
                     ],
                     'description': 'SQL Injection: User input concatenated into SQL query',
                     'fix': 'Use parameterized queries: cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))',
@@ -127,12 +139,125 @@ class VulnPathAI:
             }
         }
     
-    def pattern_based_detection(self, code, language, lines=None):
+    def _line_span_for_match(self, code, match):
+        line = code.count('\n', 0, match.start()) + 1
+        end_line = line + code[match.start():match.end()].count('\n')
+        return line, end_line
+
+    def _lines_for_span(self, line, end_line):
+        return list(range(line, end_line + 1))
+
+    def _build_snippet(self, code_lines, line, end_line, context=0):
+        if context <= 0:
+            return ""
+
+        start = max(1, line - context)
+        end = min(len(code_lines), end_line + context)
+        return "".join(
+            f"{line_no}: {code_lines[line_no - 1]}"
+            for line_no in range(start, end + 1)
+        ).rstrip("\n")
+
+    def _has_safe_parameterized_argument(self, call_text):
+        try:
+            parsed = ast.parse(call_text.strip(), mode='eval')
+            node = parsed.body
+        except SyntaxError:
+            try:
+                parsed = ast.parse(call_text.strip())
+                node = parsed.body[0].value if parsed.body and isinstance(parsed.body[0], ast.Expr) else None
+            except SyntaxError:
+                return False
+
+        if not isinstance(node, ast.Call) or len(node.args) < 2:
+            return False
+
+        return isinstance(node.args[1], (ast.Tuple, ast.List, ast.Dict))
+
+    def _find_call_text(self, code, start_pos):
+        open_pos = code.find('(', start_pos)
+        if open_pos == -1:
+            return ""
+
+        depth = 0
+        in_string = None
+        escaped = False
+        for idx in range(open_pos, len(code)):
+            char = code[idx]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == '\\':
+                    escaped = True
+                elif char == in_string:
+                    in_string = None
+                continue
+            if char in ('"', "'"):
+                in_string = char
+            elif char == '(':
+                depth += 1
+            elif char == ')':
+                depth -= 1
+                if depth == 0:
+                    prefix_start = max(0, code.rfind('\n', 0, start_pos) + 1)
+                    return code[prefix_start:idx + 1]
+        return ""
+
+    def _is_safe_parameterized_execute(self, code, match):
+        for execute_match in re.finditer(r"(?:cursor\.)?(?:execute|executemany)\s*\(", code, re.IGNORECASE):
+            if execute_match.start() > match.start():
+                break
+            call_text = self._find_call_text(code, execute_match.start())
+            if call_text and execute_match.start() <= match.start() <= execute_match.start() + len(call_text):
+                return self._has_safe_parameterized_argument(call_text)
+        return False
+
+    def _make_finding(self, vuln_info, vuln_type, line, end_line, lines, confidence, snippet=""):
+        return {
+            'cwe_id': vuln_info['cwe'],
+            'severity': vuln_info['severity'],
+            'description': vuln_info['description'],
+            'suggestion': vuln_info['fix'],
+            'vulnerability_type': vuln_type.replace('_', ' ').title(),
+            'confidence': confidence,
+            'line': line,
+            'end_line': end_line,
+            'lines': lines,
+            'snippet': snippet,
+            'example_attack': vuln_info.get('example_attack', 'N/A'),
+            'impact': vuln_info.get('impact', 'N/A')
+        }
+
+    def pattern_based_detection(self, code, language, lines=None, context=0):
         vulnerabilities = []
         patterns = self.patterns.get(language, {})
-        code_lines = lines if lines is not None else code.splitlines()
-        
+        code_lines = lines if lines is not None else code.splitlines(True)
+
         for vuln_type, vuln_info in patterns.items():
+            if vuln_type == 'sql_injection':
+                findings_by_line = {}
+                for pattern in vuln_info['patterns']:
+                    for match in re.finditer(pattern, code, re.IGNORECASE | re.DOTALL):
+                        if self._is_safe_parameterized_execute(code, match):
+                            continue
+                        line, end_line = self._line_span_for_match(code, match)
+                        if line not in findings_by_line:
+                            findings_by_line[line] = self._make_finding(
+                                vuln_info,
+                                vuln_type,
+                                line,
+                                end_line,
+                                self._lines_for_span(line, end_line),
+                                0.75,
+                                self._build_snippet(code_lines, line, end_line, context)
+                            )
+                        else:
+                            findings_by_line[line]['confidence'] = min(0.95, findings_by_line[line]['confidence'] + 0.05)
+                            findings_by_line[line]['end_line'] = max(findings_by_line[line]['end_line'], end_line)
+                            findings_by_line[line]['lines'] = self._lines_for_span(line, findings_by_line[line]['end_line'])
+                vulnerabilities.extend(findings_by_line.values())
+                continue
+
             matched_patterns = set()
             matching_lines = set()
             for pattern in vuln_info['patterns']:
@@ -140,27 +265,76 @@ class VulnPathAI:
                     if re.search(pattern, line, re.IGNORECASE):
                         matched_patterns.add(pattern)
                         matching_lines.add(line_number)
-            
+
             if matching_lines:
                 match_count = len(matched_patterns)
                 confidence = min(0.95, 0.7 + (match_count * 0.05))
                 sorted_lines = sorted(matching_lines)
-                
-                vulnerabilities.append({
-                    'cwe_id': vuln_info['cwe'],
-                    'severity': vuln_info['severity'],
-                    'description': vuln_info['description'],
-                    'suggestion': vuln_info['fix'],
-                    'vulnerability_type': vuln_type.replace('_', ' ').title(),
-                    'confidence': confidence,
-                    'line': sorted_lines[0],
-                    'lines': sorted_lines,
-                    'example_attack': vuln_info.get('example_attack', 'N/A'),
-                    'impact': vuln_info.get('impact', 'N/A')
-                })
-        
+                line = sorted_lines[0]
+
+                vulnerabilities.append(self._make_finding(
+                    vuln_info,
+                    vuln_type,
+                    line,
+                    line,
+                    sorted_lines,
+                    confidence,
+                    self._build_snippet(code_lines, line, line, context)
+                ))
+
         return vulnerabilities
-    
+
+    def _node_contains_call(self, node):
+        return any(isinstance(child, ast.Call) for child in ast.walk(node))
+
+    def _joined_str_contains_sql(self, node):
+        sql_keywords = ('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'UNION')
+        literal_text = ''.join(value.value for value in node.values if isinstance(value, ast.Constant) and isinstance(value.value, str))
+        return any(keyword in literal_text.upper() for keyword in sql_keywords)
+
+    def _call_name(self, func):
+        if isinstance(func, ast.Name):
+            return func.id
+        if isinstance(func, ast.Attribute):
+            return func.attr
+        return ''
+
+    def ast_sql_injection_detection(self, file_path, lines, context=0):
+        with tempfile.NamedTemporaryFile() as compiled_file:
+            try:
+                py_compile.compile(file_path, cfile=compiled_file.name, doraise=True)
+            except py_compile.PyCompileError:
+                return []
+
+        code = ''.join(lines)
+        tree = ast.parse(code, filename=file_path)
+        sql_info = self.patterns['python']['sql_injection']
+        findings = {}
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.JoinedStr) and self._joined_str_contains_sql(node) and self._node_contains_call(node):
+                line = getattr(node, 'lineno', 1)
+                end_line = getattr(node, 'end_lineno', line)
+                findings[line] = self._make_finding(sql_info, 'sql_injection', line, end_line, self._lines_for_span(line, end_line), 0.85, self._build_snippet(lines, line, end_line, context))
+            elif isinstance(node, ast.Call) and self._call_name(node.func) in {'execute', 'executemany'}:
+                if len(node.args) > 1 and isinstance(node.args[1], (ast.Tuple, ast.List, ast.Dict)):
+                    continue
+                for arg in node.args:
+                    if isinstance(arg, ast.JoinedStr):
+                        line = getattr(node, 'lineno', getattr(arg, 'lineno', 1))
+                        end_line = getattr(node, 'end_lineno', getattr(arg, 'end_lineno', line))
+                        findings[line] = self._make_finding(sql_info, 'sql_injection', line, end_line, self._lines_for_span(line, end_line), 0.9, self._build_snippet(lines, line, end_line, context))
+                        break
+
+        return list(findings.values())
+
+    def _merge_findings(self, regex_findings, ast_findings):
+        merged = {finding['line']: finding for finding in regex_findings}
+        for finding in ast_findings:
+            if finding['line'] not in merged:
+                merged[finding['line']] = finding
+        return list(merged.values())
+
     def analyze_paths(self, code, language, vulnerabilities):
         paths = []
         for vuln in vulnerabilities:
@@ -218,8 +392,15 @@ class VulnPathAI:
             v['exploitability'] = 'High' if v['confidence'] > 0.85 else 'Medium'
         return sorted(vulnerabilities, key=lambda x: x['priority_score'], reverse=True)
     
-    def analyze_file(self, file_path):
+    def analyze_file(self, file_path, context=0, max_file_size_kb=500, benchmark=False):
+        start_time = time.perf_counter()
         print(f"Analyzing: {file_path}")
+
+        file_size_kb = os.path.getsize(file_path) / 1024
+        if file_size_kb > max_file_size_kb:
+            warning = f"Skipping {file_path}: file size {file_size_kb:.1f} KB exceeds {max_file_size_kb} KB"
+            print(f"⚠️ {warning}")
+            return {"error": warning, "skipped": True}
         
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -236,7 +417,10 @@ class VulnPathAI:
         if language == 'unknown':
             return {"error": f"Unsupported language: {ext}"}
         
-        vulnerabilities = self.pattern_based_detection(code, language, lines)
+        vulnerabilities = self.pattern_based_detection(code, language, lines, context)
+        if language == 'python':
+            ast_findings = self.ast_sql_injection_detection(file_path, lines, context)
+            vulnerabilities = self._merge_findings(vulnerabilities, ast_findings)
         vulnerabilities = self.prioritize_vulnerabilities(vulnerabilities)
         
         severity_counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
@@ -248,6 +432,10 @@ class VulnPathAI:
         avg_confidence = sum(v.get('confidence', 0.7) for v in vulnerabilities) / len(vulnerabilities) if vulnerabilities else 1.0
         false_positive_rate = 1 - avg_confidence
         
+        elapsed = time.perf_counter() - start_time
+        if benchmark:
+            print(f"⏱️ {file_path}: {elapsed:.4f}s")
+
         return {
             "file": os.path.basename(file_path),
             "language": language,
@@ -264,7 +452,8 @@ class VulnPathAI:
             "metrics": {
                 "average_confidence": avg_confidence,
                 "false_positive_rate": false_positive_rate,
-                "security_score": max(0, 10 - (len(vulnerabilities) * 1.5))
+                "security_score": max(0, 10 - (len(vulnerabilities) * 1.5)),
+                "scan_time_seconds": elapsed
             }
         }
     
@@ -295,7 +484,7 @@ class VulnPathAI:
         report_lines.append("## 📊 Performance Metrics")
         report_lines.append(f"- **Average Confidence:** {metrics.get('average_confidence', 0):.1%}")
         report_lines.append(f"- **False Positive Rate:** {metrics.get('false_positive_rate', 0):.1%}")
-        report_lines.append("- **Scan Time:** < 1 second per file")
+        report_lines.append(f"- **Scan Time:** {metrics.get('scan_time_seconds', 0):.4f} seconds")
         report_lines.append("")
         report_lines.append("## 🔍 Detailed Findings")
         report_lines.append("")
@@ -306,13 +495,23 @@ class VulnPathAI:
             for i, v in enumerate(vulns, 1):
                 report_lines.append(f"### {i}. {v.get('vulnerability_type', 'Unknown Vulnerability')}")
                 report_lines.append(f"- **CWE:** {v.get('cwe_id', 'Unknown')}")
-                report_lines.append(f"- **Line(s):** {v.get('lines', [])}")
+                if v.get('end_line', v.get('line')) != v.get('line'):
+                    report_lines.append(f"- **Lines:** {v.get('line')}-{v.get('end_line')}")
+                else:
+                    report_lines.append(f"- **Line:** {v.get('line', 'Unknown')}")
                 report_lines.append(f"- **Severity:** {v.get('severity', 'Unknown')} (Priority Score: {v.get('priority_score', 5):.1f}/10)")
                 report_lines.append(f"- **Confidence:** {v.get('confidence', 0.85):.1%}")
                 report_lines.append(f"- **Exploitability:** {v.get('exploitability', 'Medium')}")
                 report_lines.append(f"- **Description:** {v.get('description', 'N/A')}")
                 report_lines.append(f"- **Fix Suggestion:** {v.get('suggestion', 'N/A')}")
                 report_lines.append("")
+                if v.get('snippet'):
+                    report_lines.append("#### 📄 Code Context")
+                    report_lines.append("```")
+                    report_lines.append(v.get('snippet'))
+                    report_lines.append("```")
+                    report_lines.append("")
+
                 report_lines.append("#### 💥 Example Attack")
                 report_lines.append("```")
                 report_lines.append(f"{v.get('example_attack', 'N/A')}")
@@ -435,6 +634,10 @@ def main():
     parser.add_argument('--output', '-o', help='Output file')
     parser.add_argument('--ai', '-a', action='store_true', help='Generate a prompt for GPT-5.6 analysis instead of regex scanning')
     parser.add_argument('--interactive', action='store_true', help='Generate the GPT-5.6 prompt step by step with prompts')
+    parser.add_argument('--skip-dirs', default='venv,.venv,env,node_modules,__pycache__,.git,.tox,dist,build', help='Comma-separated directory names to skip during directory scans (default: venv,.venv,env,node_modules,__pycache__,.git,.tox,dist,build)')
+    parser.add_argument('--context', type=int, default=0, help='Include N lines of surrounding source code in Markdown and JSON findings (default: 0)')
+    parser.add_argument('--max-file-size', type=int, default=500, help='Skip files larger than this size in KB (default: 500)')
+    parser.add_argument('--benchmark', action='store_true', help='Print per-file scan time and total scan time')
     
     args = parser.parse_args()
     if args.ai or args.interactive:
@@ -444,6 +647,11 @@ def main():
         return
 
     analyzer = VulnPathAI()
+    skip_dirs = {name.strip() for name in args.skip_dirs.split(',') if name.strip()}
+    total_start = time.perf_counter()
+
+    def should_skip_path(candidate):
+        return any(part in skip_dirs for part in Path(candidate).parts)
     
     if os.path.isdir(args.path):
         print(f"📁 Scanning directory: {args.path}")
@@ -454,7 +662,9 @@ def main():
         
         for ext in extensions:
             for file in path.rglob(f'*{ext}') if args.recursive else path.glob(f'*{ext}'):
-                all_results[str(file)] = analyzer.analyze_file(str(file))
+                if should_skip_path(file):
+                    continue
+                all_results[str(file)] = analyzer.analyze_file(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
         
         combined_report_lines = []
         combined_report_lines.append("# 🛡️ VulnPath-AI - Full Directory Scan Report")
@@ -477,9 +687,11 @@ def main():
             print(f"\n✅ Report saved to {args.output}")
         else:
             print(combined_report)
+        if args.benchmark:
+            print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
             
     else:
-        results = analyzer.analyze_file(args.path)
+        results = analyzer.analyze_file(args.path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
         report = analyzer.generate_report(args.path, results, args.format)
         print(report)
         
@@ -487,6 +699,8 @@ def main():
             with open(args.output, 'w', encoding='utf-8') as f:
                 f.write(report)
             print(f"\n✅ Report saved to {args.output}")
+        if args.benchmark:
+            print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
 
 if __name__ == "__main__":
     main()
