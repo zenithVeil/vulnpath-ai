@@ -76,12 +76,16 @@ class VulnPathAI:
                     'cwe': 'CWE-22',
                     'severity': 'High',
                     'patterns': [
-                        r"open\s*\(.*\+.*\)",
-                        r"os\.path\.join\s*\(.*input.*\)"
+                        r"open\(.*['\"].*\+",
+                        r"open\(.*f['\"].*\{.*\}",
+                        r"os\.path\.join\(.*['\"].*\+",
+                        r"Path\(.*['\"].*\+",
+                        r"file_get_contents\(.*['\"].*\+",
+                        r"fs\.readFile(?:Sync)?\(.*['\"].*\+"
                     ],
-                    'description': 'Path Traversal: User input in file operations',
-                    'fix': 'Validate and sanitize: os.path.abspath(os.path.join(base_dir, user_input))',
-                    'example_attack': "../../etc/passwd",
+                    'description': 'Path Traversal: User-controlled path data used in file operations',
+                    'fix': 'Resolve with os.path.abspath(), then verify the resolved path starts with the expected base directory prefix before opening it.',
+                    'example_attack': "../../../etc/passwd",
                     'impact': 'Unauthorized file access, data disclosure'
                 },
                 'xss': {
@@ -216,6 +220,26 @@ class VulnPathAI:
                 return self._has_safe_parameterized_argument(call_text)
         return False
 
+    def _has_nearby_path_traversal_guard(self, code_lines, line_number):
+        guard_patterns = (
+            r"os\.path\.basename\s*\(",
+            r"\.replace\s*\(",
+            r"validate",
+            r"validation",
+            r"sanitize",
+            r"allowlist",
+            r"allowed",
+            r"os\.path\.abspath\s*\(",
+            r"os\.path\.realpath\s*\(",
+            r"os\.path\.normpath\s*\(",
+            r"os\.path\.commonpath\s*\(",
+            r"\.startswith\s*\(",
+            r"\.is_relative_to\s*\(",
+        )
+        start = max(1, line_number - 3)
+        preceding_context = ''.join(code_lines[start - 1:line_number - 1])
+        return any(re.search(pattern, preceding_context, re.IGNORECASE) for pattern in guard_patterns)
+
     def _make_finding(self, vuln_info, vuln_type, line, end_line, lines, confidence, snippet=""):
         return {
             'cwe_id': vuln_info['cwe'],
@@ -267,6 +291,8 @@ class VulnPathAI:
             for pattern in vuln_info['patterns']:
                 for line_number, line in enumerate(code_lines, 1):
                     if re.search(pattern, line, re.IGNORECASE):
+                        if vuln_type == 'path_traversal' and self._has_nearby_path_traversal_guard(code_lines, line_number):
+                            continue
                         matched_patterns.add(pattern)
                         matching_lines.add(line_number)
 
