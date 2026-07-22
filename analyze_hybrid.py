@@ -45,13 +45,17 @@ class VulnPathAI:
                     'cwe': 'CWE-78',
                     'severity': 'Critical',
                     'patterns': [
-                        r"os\.system\s*\(.*\+.*\)",
-                        r"subprocess\.call\s*\(.*\+.*\)",
-                        r"eval\s*\(.*\)"
+                        r"os\.system\(.*['\"].*\+",
+                        r"subprocess\.(call|Popen|run)\(.*['\"].*\+",
+                        r"subprocess\.(call|Popen|run)\(.*shell\s*=\s*True",
+                        r"exec\(.*['\"].*\+",
+                        r"eval\(.*['\"].*\+",
+                        r"os\.popen\(.*['\"].*\+",
+                        r"`.*\+.*`"
                     ],
-                    'description': 'Command Injection: User input in system commands',
-                    'fix': 'Use subprocess with argument list: subprocess.run(["ls", user_input])',
-                    'example_attack': "rm -rf / ; echo 'hacked'",
+                    'description': 'Command Injection: User-controlled input is concatenated into shell commands',
+                    'fix': 'Use shlex.quote() for shell arguments or pass command arguments as a list to subprocess without shell=True.',
+                    'example_attack': '; rm -rf /',
                     'impact': 'Remote code execution, system compromise'
                 },
                 'hardcoded_credentials': {

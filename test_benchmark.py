@@ -36,6 +36,11 @@ class BenchmarkTester:
                 "description": "SQL Injection Example"
             },
             {
+                "file": "samples/command_injection_example.py",
+                "expected": "vulnerable",
+                "description": "Command Injection Example"
+            },
+            {
                 "file": "samples/hardcoded_secrets.js",
                 "expected": "vulnerable",
                 "description": "Hardcoded Secrets Example"
