@@ -7,6 +7,8 @@ import ast
 import py_compile
 import tempfile
 import time
+import importlib.util
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -732,6 +734,33 @@ class VulnPathAI:
         return "\n".join(report_lines)
 
 
+def _tqdm(iterable, **kwargs):
+    if importlib.util.find_spec("tqdm") is None:
+        return iterable
+
+    from tqdm import tqdm
+    return tqdm(iterable, **kwargs)
+
+
+def _analyze_file_worker(task):
+    file_path, context, max_file_size_kb, benchmark = task
+    analyzer = VulnPathAI()
+    return file_path, analyzer.analyze_file(
+        file_path,
+        context=context,
+        max_file_size_kb=max_file_size_kb,
+        benchmark=benchmark,
+    )
+
+
+def _completion_timestamp():
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+
+def _log_completed_file(file_path):
+    print(f"[{_completion_timestamp()}] Completed: {file_path}")
+
+
 def build_ai_prompt(target_path, interactive=False):
     script_dir = Path(__file__).resolve().parent
     system_prompt_path = script_dir / "SYSTEM_PROMPT.md"
@@ -791,6 +820,7 @@ def main():
     parser.add_argument('--context', type=int, default=0, help='Include N lines of surrounding source code in Markdown and JSON findings (default: 0)')
     parser.add_argument('--max-file-size', type=int, default=500, help='Skip files larger than this size in KB (default: 500)')
     parser.add_argument('--benchmark', action='store_true', help='Print per-file scan time and total scan time')
+    parser.add_argument('--parallel', action=argparse.BooleanOptionalAction, default=True, help='Analyze directory files in parallel with ProcessPoolExecutor (default: enabled; use --no-parallel to disable)')
 
     args = parser.parse_args()
     if args.ai or args.interactive:
@@ -820,11 +850,34 @@ def main():
         if unsupported_extensions:
             parser.error(f"Unsupported extension(s): {', '.join(sorted(unsupported_extensions))}")
 
+        files_to_scan = []
         for ext in extensions:
             for file in path.rglob(f'*{ext}') if args.recursive else path.glob(f'*{ext}'):
                 if should_skip_path(file):
                     continue
-                all_results[str(file)] = analyzer.analyze_file(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
+                files_to_scan.append(str(file))
+        files_to_scan = sorted(files_to_scan)
+
+        if args.parallel and files_to_scan:
+            tasks = [
+                (file_path, args.context, args.max_file_size, args.benchmark)
+                for file_path in files_to_scan
+            ]
+            with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+                future_to_file = {
+                    executor.submit(_analyze_file_worker, task): task[0]
+                    for task in tasks
+                }
+                completed_futures = as_completed(future_to_file)
+                for future in _tqdm(completed_futures, total=len(future_to_file), desc='Analyzing files'):
+                    file_path = future_to_file[future]
+                    result_file_path, result = future.result()
+                    all_results[result_file_path] = result
+                    _log_completed_file(file_path)
+        else:
+            for file_path in _tqdm(files_to_scan, total=len(files_to_scan), desc='Analyzing files'):
+                all_results[file_path] = analyzer.analyze_file(file_path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
+                _log_completed_file(file_path)
 
         if args.format == 'json':
             combined_report = json.dumps(all_results, indent=2)
