@@ -7,8 +7,14 @@ import ast
 import py_compile
 import tempfile
 import time
+import importlib.util
 from datetime import datetime
 from pathlib import Path
+
+if importlib.util.find_spec("pathspec") is not None:
+    import pathspec
+else:
+    pathspec = None
 
 class VulnPathAI:
     LANGUAGE_EXTENSIONS = {
@@ -803,14 +809,29 @@ def main():
     skip_dirs = {name.strip() for name in args.skip_dirs.split(',') if name.strip()}
     total_start = time.perf_counter()
 
-    def should_skip_path(candidate):
-        return any(part in skip_dirs for part in Path(candidate).parts)
+    def should_skip_path(candidate, root=None, gitignore_spec=None):
+        candidate_path = Path(candidate)
+        if any(part in skip_dirs for part in candidate_path.parts):
+            return True
+        if root and gitignore_spec:
+            relative_path = candidate_path.relative_to(root).as_posix()
+            return gitignore_spec.match_file(relative_path)
+        return False
 
     if os.path.isdir(args.path):
         print(f"📁 Scanning directory: {args.path}")
         all_results = {}
 
         path = Path(args.path)
+        gitignore_spec = None
+        gitignore_path = path / '.gitignore'
+        if gitignore_path.is_file():
+            if pathspec is None:
+                print("⚠️ pathspec is not installed; ignoring .gitignore rules and using --skip-dirs only")
+            else:
+                with gitignore_path.open(encoding='utf-8') as gitignore_file:
+                    gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', gitignore_file)
+                print("📄 Using .gitignore rules")
         extensions = {
             ext if ext.startswith('.') else f'.{ext}'
             for ext in (item.strip().lower() for item in args.ext.split(','))
@@ -822,7 +843,7 @@ def main():
 
         for ext in extensions:
             for file in path.rglob(f'*{ext}') if args.recursive else path.glob(f'*{ext}'):
-                if should_skip_path(file):
+                if should_skip_path(file, root=path, gitignore_spec=gitignore_spec):
                     continue
                 all_results[str(file)] = analyzer.analyze_file(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
 
