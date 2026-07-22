@@ -11,6 +11,29 @@ from datetime import datetime
 from pathlib import Path
 
 class VulnPathAI:
+    LANGUAGE_EXTENSIONS = {
+        '.py': 'python',
+        '.js': 'javascript',
+        '.jsx': 'javascript',
+        '.ts': 'typescript',
+        '.tsx': 'typescript',
+        '.java': 'java',
+        '.php': 'php',
+        '.rb': 'ruby',
+        '.go': 'go',
+        '.rs': 'rust',
+        '.swift': 'swift',
+        '.kt': 'kotlin',
+        '.scala': 'scala',
+        '.html': 'html',
+        '.htm': 'html',
+        '.cs': 'csharp',
+        '.c': 'c',
+        '.cpp': 'cpp',
+        '.h': 'c',
+        '.hpp': 'cpp',
+    }
+
     def __init__(self):
         self.patterns = {
             'python': {
@@ -410,9 +433,7 @@ class VulnPathAI:
             return {"error": str(e)}
         
         ext = Path(file_path).suffix.lower()
-        lang_map = {'.py': 'python', '.js': 'javascript', '.java': 'java', 
-                    '.php': 'php', '.rb': 'ruby', '.go': 'go', '.html': 'html'}
-        language = lang_map.get(ext, 'unknown')
+        language = self.LANGUAGE_EXTENSIONS.get(ext, 'unknown')
         
         if language == 'unknown':
             return {"error": f"Unsupported language: {ext}"}
@@ -635,6 +656,7 @@ def main():
     parser.add_argument('--ai', '-a', action='store_true', help='Generate a prompt for GPT-5.6 analysis instead of regex scanning')
     parser.add_argument('--interactive', action='store_true', help='Generate the GPT-5.6 prompt step by step with prompts')
     parser.add_argument('--skip-dirs', default='venv,.venv,env,node_modules,__pycache__,.git,.tox,dist,build', help='Comma-separated directory names to skip during directory scans (default: venv,.venv,env,node_modules,__pycache__,.git,.tox,dist,build)')
+    parser.add_argument('--ext', default='.py,.js,.jsx,.ts,.tsx,.java,.php,.rb,.go,.html', help='Comma-separated file extensions to include during directory scans (default: .py,.js,.jsx,.ts,.tsx,.java,.php,.rb,.go,.html)')
     parser.add_argument('--context', type=int, default=0, help='Include N lines of surrounding source code in Markdown and JSON findings (default: 0)')
     parser.add_argument('--max-file-size', type=int, default=500, help='Skip files larger than this size in KB (default: 500)')
     parser.add_argument('--benchmark', action='store_true', help='Print per-file scan time and total scan time')
@@ -658,7 +680,14 @@ def main():
         all_results = {}
         
         path = Path(args.path)
-        extensions = {'.py', '.js', '.java', '.php', '.rb', '.go', '.html'}
+        extensions = {
+            ext if ext.startswith('.') else f'.{ext}'
+            for ext in (item.strip().lower() for item in args.ext.split(','))
+            if ext
+        }
+        unsupported_extensions = extensions - analyzer.LANGUAGE_EXTENSIONS.keys()
+        if unsupported_extensions:
+            parser.error(f"Unsupported extension(s): {', '.join(sorted(unsupported_extensions))}")
         
         for ext in extensions:
             for file in path.rglob(f'*{ext}') if args.recursive else path.glob(f'*{ext}'):
