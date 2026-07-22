@@ -56,7 +56,7 @@ class VulnPathAI:
                         r"db\.execute\(.*f['\"]",
                         r"execute\(.*['\"].*\{.*\}.*['\"]\)",
                         r"f['\"].*SELECT.*\{.*\}.*['\"]",
-                        r"f['\"]{3}.*?SELECT.*?\{.*?\}.*?['\"]{3}",
+                        r"f['\"]{3}.*?(?:SELECT|INSERT|UPDATE|DELETE|DROP|UNION).*?\{.*?\}.*?['\"]{3}",
                         r"text\(.*f['\"]",
                         r"session\.execute\(.*f['\"]",
                         r"\.raw\(.*f['\"]",
