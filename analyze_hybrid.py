@@ -797,6 +797,7 @@ def main():
     parser.add_argument('--context', type=int, default=0, help='Include N lines of surrounding source code in Markdown and JSON findings (default: 0)')
     parser.add_argument('--max-file-size', type=int, default=500, help='Skip files larger than this size in KB (default: 500)')
     parser.add_argument('--benchmark', action='store_true', help='Print per-file scan time and total scan time')
+    parser.add_argument('--exit-severity', choices=['none', 'high', 'critical'], default='none', help='Exit with code 1 when vulnerabilities are found at or above this severity (default: none)')
 
     args = parser.parse_args()
     if args.ai or args.interactive:
@@ -817,6 +818,26 @@ def main():
             relative_path = candidate_path.relative_to(root).as_posix()
             return gitignore_spec.match_file(relative_path)
         return False
+
+    def findings_meet_exit_severity(results, exit_severity):
+        if exit_severity == 'none':
+            return False
+
+        included_severities = {
+            'critical': {'Critical'},
+            'high': {'High', 'Critical'},
+        }[exit_severity]
+
+        if 'files' in results:
+            findings = (
+                vuln
+                for file_results in results.get('files', {}).values()
+                for vuln in file_results.get('vulnerabilities', [])
+            )
+        else:
+            findings = iter(results.get('vulnerabilities', []))
+
+        return any(vuln.get('severity') in included_severities for vuln in findings)
 
     if os.path.isdir(args.path):
         print(f"📁 Scanning directory: {args.path}")
@@ -875,6 +896,8 @@ def main():
             print(combined_report)
         if args.benchmark:
             print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
+        if findings_meet_exit_severity({'files': all_results}, args.exit_severity):
+            sys.exit(1)
 
     else:
         results = analyzer.analyze_file(args.path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
@@ -887,6 +910,8 @@ def main():
             print(f"\n✅ Report saved to {args.output}")
         if args.benchmark:
             print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
+        if findings_meet_exit_severity(results, args.exit_severity):
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
