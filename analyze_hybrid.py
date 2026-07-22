@@ -259,7 +259,7 @@ class VulnPathAI:
         preceding_context = ''.join(code_lines[start - 1:line_number - 1])
         return any(re.search(pattern, preceding_context, re.IGNORECASE) for pattern in guard_patterns)
 
-    def _make_finding(self, vuln_info, vuln_type, line, end_line, lines, confidence, snippet=""):
+    def _make_finding(self, vuln_info, vuln_type, line, end_line, lines, confidence, snippet="", patterns=None):
         return {
             'cwe_id': vuln_info['cwe'],
             'severity': vuln_info['severity'],
@@ -272,7 +272,8 @@ class VulnPathAI:
             'lines': lines,
             'snippet': snippet,
             'example_attack': vuln_info.get('example_attack', 'N/A'),
-            'impact': vuln_info.get('impact', 'N/A')
+            'impact': vuln_info.get('impact', 'N/A'),
+            'patterns': sorted(set(patterns or []))
         }
 
     def pattern_based_detection(self, code, language, lines=None, context=0):
@@ -296,12 +297,14 @@ class VulnPathAI:
                                 end_line,
                                 self._lines_for_span(line, end_line),
                                 0.75,
-                                self._build_snippet(code_lines, line, end_line, context)
+                                self._build_snippet(code_lines, line, end_line, context),
+                                [pattern]
                             )
                         else:
                             findings_by_line[line]['confidence'] = min(0.95, findings_by_line[line]['confidence'] + 0.05)
                             findings_by_line[line]['end_line'] = max(findings_by_line[line]['end_line'], end_line)
                             findings_by_line[line]['lines'] = self._lines_for_span(line, findings_by_line[line]['end_line'])
+                            findings_by_line[line]['patterns'] = sorted(set(findings_by_line[line].get('patterns', [])) | {pattern})
                 vulnerabilities.extend(findings_by_line.values())
                 continue
 
@@ -328,7 +331,8 @@ class VulnPathAI:
                     line,
                     sorted_lines,
                     confidence,
-                    self._build_snippet(code_lines, line, line, context)
+                    self._build_snippet(code_lines, line, line, context),
+                    sorted(matched_patterns)
                 ))
 
         return vulnerabilities
@@ -382,7 +386,31 @@ class VulnPathAI:
         for finding in ast_findings:
             if finding['line'] not in merged:
                 merged[finding['line']] = finding
+            else:
+                merged[finding['line']]['patterns'] = sorted(set(merged[finding['line']].get('patterns', [])) | set(finding.get('patterns', [])))
         return list(merged.values())
+
+    def deduplicate_vulnerabilities(self, vulnerabilities):
+        deduplicated = {}
+
+        for vulnerability in vulnerabilities:
+            key = (vulnerability.get('line'), vulnerability.get('cwe_id'))
+            if key not in deduplicated:
+                copied = vulnerability.copy()
+                copied['patterns'] = sorted(set(copied.get('patterns', [])))
+                copied['lines'] = sorted(set(copied.get('lines', []) or [copied.get('line')]))
+                deduplicated[key] = copied
+                continue
+
+            existing = deduplicated[key]
+            existing['patterns'] = sorted(set(existing.get('patterns', [])) | set(vulnerability.get('patterns', [])))
+            existing['lines'] = sorted(set(existing.get('lines', [])) | set(vulnerability.get('lines', []) or [vulnerability.get('line')]))
+            existing['end_line'] = max(existing.get('end_line') or existing.get('line') or 0, vulnerability.get('end_line') or vulnerability.get('line') or 0)
+            existing['confidence'] = max(existing.get('confidence', 0), vulnerability.get('confidence', 0))
+            if not existing.get('snippet') and vulnerability.get('snippet'):
+                existing['snippet'] = vulnerability['snippet']
+
+        return list(deduplicated.values())
 
     def analyze_paths(self, code, language, vulnerabilities):
         paths = []
@@ -441,7 +469,7 @@ class VulnPathAI:
             v['exploitability'] = 'High' if v['confidence'] > 0.85 else 'Medium'
         return sorted(vulnerabilities, key=lambda x: x['priority_score'], reverse=True)
 
-    def analyze_file(self, file_path, context=0, max_file_size_kb=500, benchmark=False):
+    def analyze_file(self, file_path, context=0, max_file_size_kb=500, benchmark=False, dedup=True):
         start_time = time.perf_counter()
         print(f"Analyzing: {file_path}")
 
@@ -468,6 +496,12 @@ class VulnPathAI:
         if language == 'python':
             ast_findings = self.ast_sql_injection_detection(file_path, lines, context)
             vulnerabilities = self._merge_findings(vulnerabilities, ast_findings)
+
+        pre_dedup_count = len(vulnerabilities)
+        if dedup:
+            vulnerabilities = self.deduplicate_vulnerabilities(vulnerabilities)
+        post_dedup_count = len(vulnerabilities)
+
         vulnerabilities = self.prioritize_vulnerabilities(vulnerabilities)
 
         severity_counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
@@ -501,7 +535,13 @@ class VulnPathAI:
                 "average_confidence": avg_confidence,
                 "false_positive_rate": false_positive_rate,
                 "security_score": max(0, 10 - (len(vulnerabilities) * 1.5)),
-                "scan_time_seconds": elapsed
+                "scan_time_seconds": elapsed,
+                "deduplication": {
+                    "enabled": dedup,
+                    "before": pre_dedup_count,
+                    "after": post_dedup_count,
+                    "merged": pre_dedup_count - post_dedup_count
+                }
             }
         }
 
@@ -791,6 +831,7 @@ def main():
     parser.add_argument('--context', type=int, default=0, help='Include N lines of surrounding source code in Markdown and JSON findings (default: 0)')
     parser.add_argument('--max-file-size', type=int, default=500, help='Skip files larger than this size in KB (default: 500)')
     parser.add_argument('--benchmark', action='store_true', help='Print per-file scan time and total scan time')
+    parser.add_argument('--dedup', action=argparse.BooleanOptionalAction, default=True, help='Merge findings on the same line with the same CWE after scanning (default: enabled)')
 
     args = parser.parse_args()
     if args.ai or args.interactive:
@@ -824,7 +865,7 @@ def main():
             for file in path.rglob(f'*{ext}') if args.recursive else path.glob(f'*{ext}'):
                 if should_skip_path(file):
                     continue
-                all_results[str(file)] = analyzer.analyze_file(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
+                all_results[str(file)] = analyzer.analyze_file(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark, dedup=args.dedup)
 
         if args.format == 'json':
             combined_report = json.dumps(all_results, indent=2)
@@ -852,11 +893,15 @@ def main():
             print(f"\n✅ Report saved to {args.output}")
         else:
             print(combined_report)
+        if args.dedup:
+            dedup_before = sum(result.get('metrics', {}).get('deduplication', {}).get('before', 0) for result in all_results.values())
+            dedup_after = sum(result.get('metrics', {}).get('deduplication', {}).get('after', 0) for result in all_results.values())
+            print(f"📊 Deduplication: merged {dedup_before} findings into {dedup_after} unique vulnerabilities")
         if args.benchmark:
             print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
 
     else:
-        results = analyzer.analyze_file(args.path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
+        results = analyzer.analyze_file(args.path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark, dedup=args.dedup)
         report = analyzer.generate_report(args.path, results, args.format)
         print(report)
 
@@ -864,6 +909,9 @@ def main():
             with open(args.output, 'w', encoding='utf-8') as f:
                 f.write(report)
             print(f"\n✅ Report saved to {args.output}")
+        if args.dedup:
+            dedup_stats = results.get('metrics', {}).get('deduplication', {})
+            print(f"📊 Deduplication: merged {dedup_stats.get('before', 0)} findings into {dedup_stats.get('after', 0)} unique vulnerabilities")
         if args.benchmark:
             print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
 
