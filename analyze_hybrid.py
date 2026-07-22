@@ -85,10 +85,10 @@ class VulnPathAI:
                     'cwe': 'CWE-798',
                     'severity': 'Critical',
                     'patterns': [
-                        r"password\s*=\s*['\"][^'\"]+['\"]",
-                        r"api_key\s*=\s*['\"][^'\"]+['\"]",
-                        r"secret\s*=\s*['\"][^'\"]+['\"]",
-                        r"token\s*=\s*['\"][^'\"]+['\"]"
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*password\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*api_key\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*secret\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*token\s*[:=]\s*['\"][^'\"]+['\"]"
                     ],
                     'description': 'Hardcoded credentials found in code',
                     'fix': 'Use environment variables: password = os.environ.get("DB_PASSWORD")',
@@ -149,18 +149,14 @@ class VulnPathAI:
                     'cwe': 'CWE-798',
                     'severity': 'Critical',
                     'patterns': [
-                        r"databasePassword\s*:\s*['\"][^'\"]+['\"]",
-                        r"apiKey\s*:\s*['\"][^'\"]+['\"]",
-                        r"jwtSecret\s*:\s*['\"][^'\"]+['\"]",
-                        r"secret\s*:\s*['\"][^'\"]+['\"]",
-                        r"password\s*:\s*['\"][^'\"]+['\"]",
-                        r"awsAccessKeyId\s*:\s*['\"][^'\"]+['\"]",
-                        r"awsSecretAccessKey\s*:\s*['\"][^'\"]+['\"]",
-                        r"databaseUser\s*:\s*['\"][^'\"]+['\"]",
-                        r"password\s*=\s*['\"][^'\"]+['\"]",
-                        r"apiKey\s*=\s*['\"][^'\"]+['\"]",
-                        r"secret\s*=\s*['\"][^'\"]+['\"]",
-                        r"jwtSecret\s*=\s*['\"][^'\"]+['\"]"
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*databasePassword\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*apiKey\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*jwtSecret\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*secret\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*password\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*awsAccessKeyId\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*awsSecretAccessKey\s*[:=]\s*['\"][^'\"]+['\"]",
+                        r"(?<!['\"#//])(?<!getenv)(?<!environ)(?<!env\.)(?<!process\.env)^[ \t]*databaseUser\s*[:=]\s*['\"][^'\"]+['\"]"
                     ],
                     'description': 'Hardcoded credentials found in code',
                     'fix': 'Use environment variables: process.env.DB_PASSWORD',
