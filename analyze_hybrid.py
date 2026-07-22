@@ -165,7 +165,7 @@ class VulnPathAI:
                 }
             }
         }
-    
+
     def _line_span_for_match(self, code, match):
         line = code.count('\n', 0, match.start()) + 1
         end_line = line + code[match.start():match.end()].count('\n')
@@ -388,7 +388,7 @@ class VulnPathAI:
         paths = []
         for vuln in vulnerabilities:
             vuln_type = vuln.get('vulnerability_type', '').lower()
-            
+
             if 'sql' in vuln_type:
                 paths.append({
                     'source': 'User Input → HTTP Request Parameter',
@@ -430,7 +430,7 @@ class VulnPathAI:
                     'attack_chain': 'Input Injection → HTML Rendering → Script Execution'
                 })
         return paths
-    
+
     def prioritize_vulnerabilities(self, vulnerabilities):
         severity_order = {'Critical': 9, 'High': 7, 'Medium': 5, 'Low': 3}
         for v in vulnerabilities:
@@ -440,7 +440,7 @@ class VulnPathAI:
             v['priority_level'] = v['severity']
             v['exploitability'] = 'High' if v['confidence'] > 0.85 else 'Medium'
         return sorted(vulnerabilities, key=lambda x: x['priority_score'], reverse=True)
-    
+
     def analyze_file(self, file_path, context=0, max_file_size_kb=500, benchmark=False):
         start_time = time.perf_counter()
         print(f"Analyzing: {file_path}")
@@ -450,41 +450,42 @@ class VulnPathAI:
             warning = f"Skipping {file_path}: file size {file_size_kb:.1f} KB exceeds {max_file_size_kb} KB"
             print(f"⚠️ {warning}")
             return {"error": warning, "skipped": True}
-        
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
                 code = ''.join(lines)
         except Exception as e:
             return {"error": str(e)}
-        
+
         ext = Path(file_path).suffix.lower()
         language = self.LANGUAGE_EXTENSIONS.get(ext, 'unknown')
-        
+
         if language == 'unknown':
             return {"error": f"Unsupported language: {ext}"}
-        
+
         vulnerabilities = self.pattern_based_detection(code, language, lines, context)
         if language == 'python':
             ast_findings = self.ast_sql_injection_detection(file_path, lines, context)
             vulnerabilities = self._merge_findings(vulnerabilities, ast_findings)
         vulnerabilities = self.prioritize_vulnerabilities(vulnerabilities)
-        
+
         severity_counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
         for v in vulnerabilities:
             severity_counts[v['severity']] += 1
-        
+
         path_analysis = self.analyze_paths(code, language, vulnerabilities)
-        
+
         avg_confidence = sum(v.get('confidence', 0.7) for v in vulnerabilities) / len(vulnerabilities) if vulnerabilities else 1.0
         false_positive_rate = 1 - avg_confidence
-        
+
         elapsed = time.perf_counter() - start_time
         if benchmark:
             print(f"⏱️ {file_path}: {elapsed:.4f}s")
 
         return {
             "file": os.path.basename(file_path),
+            "file_path": file_path,
             "language": language,
             "analysis_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "summary": {
@@ -503,16 +504,120 @@ class VulnPathAI:
                 "scan_time_seconds": elapsed
             }
         }
-    
+
+    def _sarif_level_for_severity(self, severity):
+        severity_levels = {
+            'Critical': 'error',
+            'High': 'warning',
+            'Medium': 'note',
+            'Low': 'note',
+        }
+        return severity_levels.get(severity, 'warning')
+
+    def _sarif_findings(self, results):
+        if 'files' in results:
+            for file_uri, file_results in results.get('files', {}).items():
+                for vuln in file_results.get('vulnerabilities', []):
+                    yield file_results.get('file_path') or file_uri, vuln
+            return
+
+        file_uri = results.get('file_path') or results.get('file') or 'Unknown'
+        for vuln in results.get('vulnerabilities', []):
+            yield file_uri, vuln
+
+    def _generate_sarif_report(self, results):
+        rules = {}
+        sarif_results = []
+
+        for file_uri, vuln in self._sarif_findings(results):
+            cwe_id = vuln.get('cwe_id', 'Unknown')
+            severity = vuln.get('severity', 'Unknown')
+            description = vuln.get('description', 'N/A')
+            suggestion = vuln.get('suggestion', 'N/A')
+            start_line = int(vuln.get('line') or 1)
+            end_line = int(vuln.get('end_line') or start_line)
+            snippet = vuln.get('snippet', '')
+
+            if cwe_id not in rules:
+                rules[cwe_id] = {
+                    'id': cwe_id,
+                    'name': vuln.get('vulnerability_type', cwe_id),
+                    'shortDescription': {
+                        'text': vuln.get('vulnerability_type', cwe_id)
+                    },
+                    'fullDescription': {
+                        'text': description
+                    },
+                    'help': {
+                        'text': suggestion
+                    },
+                    'properties': {
+                        'tags': [cwe_id],
+                        'security-severity': str(vuln.get('priority_score', '')),
+                        'severity': severity
+                    }
+                }
+
+            sarif_results.append({
+                'ruleId': cwe_id,
+                'level': self._sarif_level_for_severity(severity),
+                'message': {
+                    'text': description
+                },
+                'locations': [
+                    {
+                        'physicalLocation': {
+                            'artifactLocation': {
+                                'uri': file_uri
+                            },
+                            'region': {
+                                'startLine': start_line,
+                                'endLine': end_line,
+                                'snippet': {
+                                    'text': snippet
+                                }
+                            }
+                        }
+                    }
+                ],
+                'properties': {
+                    'severity': severity,
+                    'fix': suggestion,
+                    'confidence': vuln.get('confidence'),
+                    'vulnerability_type': vuln.get('vulnerability_type'),
+                    'impact': vuln.get('impact')
+                }
+            })
+
+        report = {
+            '$schema': 'https://json.schemastore.org/sarif-2.1.0.json',
+            'version': '2.1.0',
+            'runs': [
+                {
+                    'tool': {
+                        'driver': {
+                            'name': 'VulnPath-AI',
+                            'informationUri': 'https://github.com/',
+                            'rules': list(rules.values())
+                        }
+                    },
+                    'results': sarif_results
+                }
+            ]
+        }
+        return json.dumps(report, indent=2)
+
     def generate_report(self, file_path, findings, format="markdown"):
         if format == "json":
             return json.dumps(findings, indent=2)
-        
+        if format == "sarif":
+            return self._generate_sarif_report(findings)
+
         vulns = findings.get('vulnerabilities', [])
         summary = findings.get('summary', {})
         paths = findings.get('path_analysis', [])
         metrics = findings.get('metrics', {})
-        
+
         report_lines = []
         report_lines.append("# 🛡️ VulnPath-AI Security Analysis Report")
         report_lines.append("")
@@ -535,7 +640,7 @@ class VulnPathAI:
         report_lines.append("")
         report_lines.append("## 🔍 Detailed Findings")
         report_lines.append("")
-        
+
         if not vulns:
             report_lines.append("✅ No vulnerabilities found! Your code looks secure.")
         else:
@@ -568,7 +673,7 @@ class VulnPathAI:
                 report_lines.append(f"{v.get('impact', 'N/A')}")
                 report_lines.append("")
                 report_lines.append("#### 🔗 Attack Path Analysis")
-                
+
                 matched_path = None
                 vuln_type = v.get('vulnerability_type', '').lower()
                 for path in paths:
@@ -587,7 +692,7 @@ class VulnPathAI:
                     elif 'xss' in vuln_type and 'xss' in str(path).lower():
                         matched_path = path
                         break
-                
+
                 if matched_path:
                     report_lines.append(f"- **Source:** {matched_path.get('source', 'Unknown')}")
                     report_lines.append(f"- **Sink:** {matched_path.get('sink', 'Unknown')}")
@@ -596,7 +701,7 @@ class VulnPathAI:
                     report_lines.append(f"- **Remediation:** {matched_path.get('remediation', 'Unknown')}")
                 else:
                     report_lines.append("- Path analysis available in full report")
-                
+
                 report_lines.append("")
 
         report_lines.append("")
@@ -623,7 +728,7 @@ class VulnPathAI:
         report_lines.append("")
         report_lines.append("---")
         report_lines.append("*Report generated by VulnPath-AI - Security vulnerability detection with AI-powered pattern matching*")
-        
+
         return "\n".join(report_lines)
 
 
@@ -672,12 +777,12 @@ Step 4: GPT-5.6 will analyze it with attack paths, CVSS, business impact
 
 def main():
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='VulnPath-AI - Advanced Security Analyzer')
     parser.add_argument('path', help='File or directory path')
     parser.add_argument('--dir', action='store_true', help='Analyze directory')
     parser.add_argument('--recursive', '-r', action='store_true', help='Recursive scan')
-    parser.add_argument('--format', '-f', choices=['json', 'markdown'], default='markdown')
+    parser.add_argument('--format', '-f', choices=['json', 'markdown', 'sarif'], default='markdown')
     parser.add_argument('--output', '-o', help='Output file')
     parser.add_argument('--ai', '-a', action='store_true', help='Generate a prompt for GPT-5.6 analysis instead of regex scanning')
     parser.add_argument('--interactive', action='store_true', help='Generate the GPT-5.6 prompt step by step with prompts')
@@ -686,7 +791,7 @@ def main():
     parser.add_argument('--context', type=int, default=0, help='Include N lines of surrounding source code in Markdown and JSON findings (default: 0)')
     parser.add_argument('--max-file-size', type=int, default=500, help='Skip files larger than this size in KB (default: 500)')
     parser.add_argument('--benchmark', action='store_true', help='Print per-file scan time and total scan time')
-    
+
     args = parser.parse_args()
     if args.ai or args.interactive:
         if os.path.isdir(args.path):
@@ -700,11 +805,11 @@ def main():
 
     def should_skip_path(candidate):
         return any(part in skip_dirs for part in Path(candidate).parts)
-    
+
     if os.path.isdir(args.path):
         print(f"📁 Scanning directory: {args.path}")
         all_results = {}
-        
+
         path = Path(args.path)
         extensions = {
             ext if ext.startswith('.') else f'.{ext}'
@@ -714,28 +819,33 @@ def main():
         unsupported_extensions = extensions - analyzer.LANGUAGE_EXTENSIONS.keys()
         if unsupported_extensions:
             parser.error(f"Unsupported extension(s): {', '.join(sorted(unsupported_extensions))}")
-        
+
         for ext in extensions:
             for file in path.rglob(f'*{ext}') if args.recursive else path.glob(f'*{ext}'):
                 if should_skip_path(file):
                     continue
                 all_results[str(file)] = analyzer.analyze_file(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
-        
-        combined_report_lines = []
-        combined_report_lines.append("# 🛡️ VulnPath-AI - Full Directory Scan Report")
-        combined_report_lines.append("")
-        combined_report_lines.append(f"**Scan Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        combined_report_lines.append(f"**Directory:** {args.path}")
-        combined_report_lines.append("")
-        
-        for file_path, results in all_results.items():
-            combined_report_lines.append(analyzer.generate_report(file_path, results, 'markdown'))
+
+        if args.format == 'json':
+            combined_report = json.dumps(all_results, indent=2)
+        elif args.format == 'sarif':
+            combined_report = analyzer._generate_sarif_report({'files': all_results})
+        else:
+            combined_report_lines = []
+            combined_report_lines.append("# 🛡️ VulnPath-AI - Full Directory Scan Report")
             combined_report_lines.append("")
-            combined_report_lines.append("---")
+            combined_report_lines.append(f"**Scan Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            combined_report_lines.append(f"**Directory:** {args.path}")
             combined_report_lines.append("")
-        
-        combined_report = "\n".join(combined_report_lines)
-        
+
+            for file_path, results in all_results.items():
+                combined_report_lines.append(analyzer.generate_report(file_path, results, 'markdown'))
+                combined_report_lines.append("")
+                combined_report_lines.append("---")
+                combined_report_lines.append("")
+
+            combined_report = "\n".join(combined_report_lines)
+
         if args.output:
             with open(args.output, 'w', encoding='utf-8') as f:
                 f.write(combined_report)
@@ -744,12 +854,12 @@ def main():
             print(combined_report)
         if args.benchmark:
             print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
-            
+
     else:
         results = analyzer.analyze_file(args.path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
         report = analyzer.generate_report(args.path, results, args.format)
         print(report)
-        
+
         if args.output:
             with open(args.output, 'w', encoding='utf-8') as f:
                 f.write(report)
