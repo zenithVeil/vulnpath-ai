@@ -9,15 +9,23 @@ import tempfile
 import time
 import importlib.util
 from datetime import datetime
-
-
-from ast_analyzer import analyze_python_file
-
+from pathlib import Path
 
 if importlib.util.find_spec("pathspec") is not None:
     import pathspec
 else:
     pathspec = None
+
+# Display names for findings coming from ast_analyzer.py
+AST_TYPE_DISPLAY = {
+    'sql_injection': 'SQL Injection',
+    'command_injection': 'Command Injection',
+    'hardcoded_credentials': 'Hardcoded Credentials',
+    'path_traversal': 'Path Traversal',
+    'dangerous_eval': 'Use of eval/exec',
+    'weak_crypto': 'Weak Cryptography',
+    'insecure_deserialization': 'Insecure Deserialization',
+}
 
 class VulnPathAI:
     LANGUAGE_EXTENSIONS = {
@@ -172,46 +180,6 @@ class VulnPathAI:
                     'example_attack': 'Attacker reads source code to extract credentials',
                     'impact': 'Unauthorized access, data breach, account takeover'
                 }
-
-                def analyze_with_ast(self, file_path, context=0, max_file_size_kb=500, benchmark=False):
-        """Combined AST + regex analysis for Python files, deduplicated."""
-        results = self.analyze_file(file_path, context=context,
-                                    max_file_size_kb=max_file_size_kb, benchmark=benchmark)
-
-        if file_path.lower().endswith('.py'):
-            try:
-                from ast_analyzer import analyze_python_file
-                ast_findings = analyze_python_file(file_path)
-            except Exception as exc:
-                print(f"⚠️ AST analysis skipped for {file_path}: {exc}")
-                ast_findings = []
-
-            combined = list(results.get('vulnerabilities', []))
-            seen = {(f.get('line'), f.get('vulnerability_type')) for f in combined}
-            for finding in ast_findings:
-                key = (finding.get('line'), finding.get('vulnerability_type'))
-                if key not in seen:
-                    seen.add(key)
-                    combined.append(finding)
-
-            combined.sort(key=lambda f: (f.get('line') or 0, f.get('priority_score') or 0))
-
-            counts = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
-            for finding in combined:
-                sev = str(finding.get('severity', '')).lower()
-                if sev in counts:
-                    counts[sev] += 1
-
-            results['vulnerabilities'] = combined
-            results['summary'] = {
-                'total_vulnerabilities': len(combined),
-                'critical': counts['critical'],
-                'high': counts['high'],
-                'medium': counts['medium'],
-                'low': counts['low'],
-            }
-
-        return results
             }
         }
 
@@ -478,6 +446,22 @@ class VulnPathAI:
                     'remediation': 'Escape HTML output or use CSP headers',
                     'attack_chain': 'Input Injection → HTML Rendering → Script Execution'
                 })
+            elif 'eval' in vuln_type or 'deseriali' in vuln_type:
+                paths.append({
+                    'source': 'Untrusted input / serialized payload',
+                    'sink': 'eval()/exec() or pickle.loads()',
+                    'flow': 'Untrusted data reaches a code-execution primitive without validation',
+                    'remediation': 'Use ast.literal_eval or JSON; never unpickle untrusted data',
+                    'attack_chain': 'Payload Injection → Code Execution → System Compromise'
+                })
+            elif 'crypto' in vuln_type:
+                paths.append({
+                    'source': 'Sensitive data (passwords, tokens, files)',
+                    'sink': 'Weak hash / encryption routine',
+                    'flow': 'Sensitive data protected with a legacy or weak algorithm',
+                    'remediation': 'Use bcrypt/Argon2 for passwords and SHA-256+ for integrity',
+                    'attack_chain': 'Weak Algorithm → Offline Brute Force → Credential Compromise'
+                })
         return paths
 
     def prioritize_vulnerabilities(self, vulnerabilities):
@@ -553,6 +537,76 @@ class VulnPathAI:
                 "scan_time_seconds": elapsed
             }
         }
+
+    def analyze_with_ast(self, file_path, context=0, max_file_size_kb=500, benchmark=False):
+        """Regex scan + external AST scan (ast_analyzer.py), deduplicated by location."""
+        results = self.analyze_file(file_path, context=context,
+                                    max_file_size_kb=max_file_size_kb,
+                                    benchmark=benchmark)
+
+        if 'error' in results or not file_path.lower().endswith('.py'):
+            return results
+
+        try:
+            from ast_analyzer import analyze_python_file
+            ast_findings = analyze_python_file(file_path)
+        except Exception as exc:
+            print(f"⚠️ AST scan skipped for {file_path}: {exc}")
+            return results
+
+        def _norm_key(f):
+            return (
+                f.get('line'),
+                str(f.get('vulnerability_type', '')).lower().replace('_', ' ').strip()
+            )
+
+        combined = list(results.get('vulnerabilities', []))
+        seen = {_norm_key(f) for f in combined}
+
+        for finding in ast_findings:
+            raw_type = str(finding.get('vulnerability_type', '')).lower()
+            if raw_type in ('read_error', 'syntax_error'):
+                continue
+            finding['vulnerability_type'] = AST_TYPE_DISPLAY.get(
+                raw_type, raw_type.replace('_', ' ').title()
+            )
+            finding.setdefault('end_line', finding.get('line', 1))
+            finding.setdefault('snippet', '')
+            finding.setdefault('lines', [finding.get('line', 1)])
+            finding.setdefault('example_attack', 'N/A')
+
+            key = _norm_key(finding)
+            if key in seen:
+                continue
+            seen.add(key)
+            combined.append(finding)
+
+        combined = self.prioritize_vulnerabilities(combined)
+
+        counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
+        for finding in combined:
+            sev = str(finding.get('severity', '')).capitalize()
+            if sev in counts:
+                counts[sev] += 1
+
+        avg_confidence = sum(f.get('confidence', 0.7) for f in combined) / len(combined) if combined else 1.0
+        if 'metrics' not in results:
+            results['metrics'] = {}
+        results['metrics'].update({
+            'average_confidence': avg_confidence,
+            'false_positive_rate': 1 - avg_confidence,
+            'security_score': max(0, 10 - (len(combined) * 1.5)),
+        })
+
+        results['vulnerabilities'] = combined
+        results['summary'] = {
+            'total_vulnerabilities': len(combined),
+            'critical': counts['Critical'],
+            'high': counts['High'],
+            'medium': counts['Medium'],
+            'low': counts['Low'],
+        }
+        return results
 
     def _sarif_level_for_severity(self, severity):
         severity_levels = {
@@ -741,6 +795,9 @@ class VulnPathAI:
                     elif 'xss' in vuln_type and 'xss' in str(path).lower():
                         matched_path = path
                         break
+                    elif 'eval' in vuln_type or 'deseriali' in vuln_type or 'crypto' in vuln_type:
+                        matched_path = path
+                        break
 
                 if matched_path:
                     report_lines.append(f"- **Source:** {matched_path.get('source', 'Unknown')}")
@@ -823,34 +880,6 @@ Step 4: GPT-5.6 will analyze it with attack paths, CVSS, business impact
     else:
         print("\n\n".join(sections))
 
-
-
-def analyze_with_ast(self, file_path):
-        """Combined AST + regex analysis for Python files, deduplicated."""
-        combined = []
-        seen = set()
-
-        try:
-            ast_findings = analyze_python_file(file_path)
-        except Exception:
-            ast_findings = []
-
-        for f in ast_findings:
-            key = (f.get("line"), f.get("vulnerability_type"))
-            if key not in seen:
-                seen.add(key)
-                combined.append(f)
-
-        for f in self.analyze_file(file_path):
-            key = (f.get("line"), f.get("vulnerability_type"))
-            if key not in seen:
-                seen.add(key)
-                combined.append(f)
-
-        return combined
-
-
-        
 
 def main():
     import argparse
@@ -937,7 +966,7 @@ def main():
             for file in path.rglob(f'*{ext}') if args.recursive else path.glob(f'*{ext}'):
                 if should_skip_path(file, root=path, gitignore_spec=gitignore_spec):
                     continue
-                all_results[str(file)] = analyzer.analyze_file(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
+                all_results[str(file)] = analyzer.analyze_with_ast(str(file), context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
 
         if args.format == 'json':
             combined_report = json.dumps(all_results, indent=2)
@@ -971,7 +1000,7 @@ def main():
             sys.exit(1)
 
     else:
-        results = analyzer.analyze_file(args.path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
+        results = analyzer.analyze_with_ast(args.path, context=args.context, max_file_size_kb=args.max_file_size, benchmark=args.benchmark)
         report = analyzer.generate_report(args.path, results, args.format)
         print(report)
 
@@ -983,6 +1012,6 @@ def main():
             print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
         if findings_meet_exit_severity(results, args.exit_severity):
             sys.exit(1)
-  
+
 if __name__ == "__main__":
     main()
