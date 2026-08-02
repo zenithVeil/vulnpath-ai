@@ -9,7 +9,10 @@ import tempfile
 import time
 import importlib.util
 from datetime import datetime
-from pathlib import Path
+
+
+from ast_analyzer import analyze_python_file
+
 
 if importlib.util.find_spec("pathspec") is not None:
     import pathspec
@@ -169,6 +172,46 @@ class VulnPathAI:
                     'example_attack': 'Attacker reads source code to extract credentials',
                     'impact': 'Unauthorized access, data breach, account takeover'
                 }
+
+                def analyze_with_ast(self, file_path, context=0, max_file_size_kb=500, benchmark=False):
+        """Combined AST + regex analysis for Python files, deduplicated."""
+        results = self.analyze_file(file_path, context=context,
+                                    max_file_size_kb=max_file_size_kb, benchmark=benchmark)
+
+        if file_path.lower().endswith('.py'):
+            try:
+                from ast_analyzer import analyze_python_file
+                ast_findings = analyze_python_file(file_path)
+            except Exception as exc:
+                print(f"⚠️ AST analysis skipped for {file_path}: {exc}")
+                ast_findings = []
+
+            combined = list(results.get('vulnerabilities', []))
+            seen = {(f.get('line'), f.get('vulnerability_type')) for f in combined}
+            for finding in ast_findings:
+                key = (finding.get('line'), finding.get('vulnerability_type'))
+                if key not in seen:
+                    seen.add(key)
+                    combined.append(finding)
+
+            combined.sort(key=lambda f: (f.get('line') or 0, f.get('priority_score') or 0))
+
+            counts = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
+            for finding in combined:
+                sev = str(finding.get('severity', '')).lower()
+                if sev in counts:
+                    counts[sev] += 1
+
+            results['vulnerabilities'] = combined
+            results['summary'] = {
+                'total_vulnerabilities': len(combined),
+                'critical': counts['critical'],
+                'high': counts['high'],
+                'medium': counts['medium'],
+                'low': counts['low'],
+            }
+
+        return results
             }
         }
 
@@ -781,6 +824,34 @@ Step 4: GPT-5.6 will analyze it with attack paths, CVSS, business impact
         print("\n\n".join(sections))
 
 
+
+def analyze_with_ast(self, file_path):
+        """Combined AST + regex analysis for Python files, deduplicated."""
+        combined = []
+        seen = set()
+
+        try:
+            ast_findings = analyze_python_file(file_path)
+        except Exception:
+            ast_findings = []
+
+        for f in ast_findings:
+            key = (f.get("line"), f.get("vulnerability_type"))
+            if key not in seen:
+                seen.add(key)
+                combined.append(f)
+
+        for f in self.analyze_file(file_path):
+            key = (f.get("line"), f.get("vulnerability_type"))
+            if key not in seen:
+                seen.add(key)
+                combined.append(f)
+
+        return combined
+
+
+        
+
 def main():
     import argparse
 
@@ -912,6 +983,6 @@ def main():
             print(f"⏱️ Total scan time: {time.perf_counter() - total_start:.4f}s")
         if findings_meet_exit_severity(results, args.exit_severity):
             sys.exit(1)
-
+  
 if __name__ == "__main__":
     main()
