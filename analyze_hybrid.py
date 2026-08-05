@@ -4,8 +4,6 @@ import json
 import sys
 import re
 import ast
-import py_compile
-import tempfile
 import time
 import importlib.util
 from datetime import datetime
@@ -364,7 +362,8 @@ class VulnPathAI:
         if isinstance(func, ast.Attribute):
             return func.attr
         return ''
-def ast_sql_injection_detection(self, file_path, lines, context=0):
+
+    def ast_sql_injection_detection(self, file_path, lines, context=0):
         code = ''.join(lines)
         try:
             tree = ast.parse(code, filename=file_path)
@@ -373,6 +372,7 @@ def ast_sql_injection_detection(self, file_path, lines, context=0):
 
         sql_info = self.patterns['python']['sql_injection']
         findings = {}
+
         for node in ast.walk(tree):
             if isinstance(node, ast.JoinedStr) and self._joined_str_contains_sql(node) and self._node_contains_call(node):
                 line = getattr(node, 'lineno', 1)
