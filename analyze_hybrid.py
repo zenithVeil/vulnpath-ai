@@ -364,19 +364,15 @@ class VulnPathAI:
         if isinstance(func, ast.Attribute):
             return func.attr
         return ''
-
-    def ast_sql_injection_detection(self, file_path, lines, context=0):
-        with tempfile.NamedTemporaryFile() as compiled_file:
-            try:
-                py_compile.compile(file_path, cfile=compiled_file.name, doraise=True)
-            except py_compile.PyCompileError:
-                return []
-
+def ast_sql_injection_detection(self, file_path, lines, context=0):
         code = ''.join(lines)
-        tree = ast.parse(code, filename=file_path)
+        try:
+            tree = ast.parse(code, filename=file_path)
+        except SyntaxError:
+            return []
+
         sql_info = self.patterns['python']['sql_injection']
         findings = {}
-
         for node in ast.walk(tree):
             if isinstance(node, ast.JoinedStr) and self._joined_str_contains_sql(node) and self._node_contains_call(node):
                 line = getattr(node, 'lineno', 1)
