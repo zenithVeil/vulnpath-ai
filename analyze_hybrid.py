@@ -397,67 +397,349 @@ class VulnPathAI:
                 merged[finding['line']] = finding
         return list(merged.values())
 
+    def _path_template_for_type(self, vuln_type):
+        vuln_type = (vuln_type or '').lower()
+        if 'sql' in vuln_type:
+            return {
+                'source': 'User Input → HTTP Request Parameter',
+                'sink': 'Database Query Execution',
+                'flow': 'User input flows directly to SQL query without sanitization',
+                'remediation': 'Use parameterized queries to break the attack path',
+                'attack_chain': 'Input → Query Construction → Database Execution → Data Exposure'
+            }
+        if 'hardcoded' in vuln_type:
+            return {
+                'source': 'Hardcoded value in source code',
+                'sink': 'Authentication/API Call',
+                'flow': 'Credentials exposed in code → Attacker can read them',
+                'remediation': 'Move credentials to environment variables',
+                'attack_chain': 'Code Access → Credential Extraction → Unauthorized Access'
+            }
+        if 'command' in vuln_type:
+            return {
+                'source': 'User Input → Form/URL Parameter',
+                'sink': 'System Command Execution',
+                'flow': 'User input passed to shell command without validation',
+                'remediation': 'Use subprocess with argument list, avoid shell=True',
+                'attack_chain': 'Input Injection → Shell Execution → System Compromise'
+            }
+        if 'path' in vuln_type:
+            return {
+                'source': 'User Input → File Path Parameter',
+                'sink': 'File System Operation',
+                'flow': 'User input used to construct file path without validation',
+                'remediation': 'Validate and sanitize input, use allowlist',
+                'attack_chain': 'Path Injection → Directory Traversal → File Access'
+            }
+        if 'xss' in vuln_type:
+            return {
+                'source': 'User Input → HTTP Request Parameter',
+                'sink': 'HTML Rendering',
+                'flow': 'User input rendered directly in HTML without sanitization',
+                'remediation': 'Escape HTML output or use CSP headers',
+                'attack_chain': 'Input Injection → HTML Rendering → Script Execution'
+            }
+        if 'eval' in vuln_type or 'deseriali' in vuln_type:
+            return {
+                'source': 'Untrusted input / serialized payload',
+                'sink': 'eval()/exec() or pickle.loads()',
+                'flow': 'Untrusted data reaches a code-execution primitive without validation',
+                'remediation': 'Use ast.literal_eval or JSON; never unpickle untrusted data',
+                'attack_chain': 'Payload Injection → Code Execution → System Compromise'
+            }
+        if 'crypto' in vuln_type:
+            return {
+                'source': 'Sensitive data (passwords, tokens, files)',
+                'sink': 'Weak hash / encryption routine',
+                'flow': 'Sensitive data protected with a legacy or weak algorithm',
+                'remediation': 'Use bcrypt/Argon2 for passwords and SHA-256+ for integrity',
+                'attack_chain': 'Weak Algorithm → Offline Brute Force → Credential Compromise'
+            }
+        return None
+
+    def _qualname(self, node):
+        parts = []
+        current = node
+        while isinstance(current, ast.Attribute):
+            parts.append(current.attr)
+            current = current.value
+        if isinstance(current, ast.Name):
+            parts.append(current.id)
+            return '.'.join(reversed(parts))
+        if isinstance(current, ast.Call):
+            base = self._qualname(current.func)
+            return '.'.join([base] + list(reversed(parts))) if base else ''
+        return '.'.join(reversed(parts)) if parts else ''
+
+    def _call_first_string_arg(self, call_node):
+        if not isinstance(call_node, ast.Call) or not call_node.args:
+            return None
+        arg = call_node.args[0]
+        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+            return arg.value
+        return None
+
+    def _is_request_source_name(self, qualname):
+        prefixes = (
+            'request.args', 'request.form', 'request.values', 'request.json',
+            'request.cookies', 'request.headers', 'request.files', 'request.data',
+            'request.GET', 'request.POST', 'request.META',
+            'flask.request',
+        )
+        if qualname in ('request.get_json', 'request.get_data', 'request.get'):
+            return True
+        return any(qualname == prefix or qualname.startswith(prefix + '.') for prefix in prefixes)
+
+    def _describe_origin(self, node, taint):
+        """Return (origin_label, chain) if node is/carries untrusted input."""
+        if isinstance(node, ast.Name) and node.id in taint:
+            info = taint[node.id]
+            return info['origin'], list(info['chain'])
+
+        if isinstance(node, ast.Call):
+            qualname = self._qualname(node.func)
+            if qualname in ('input', 'raw_input') or qualname.endswith('.input'):
+                return 'input()', ['input()']
+            if self._is_request_source_name(qualname):
+                key = self._call_first_string_arg(node)
+                label = '%s(%r)' % (qualname, key) if key is not None else qualname + '()'
+                return label, [label]
+            nested = None
+            for arg in list(node.args) + [kw.value for kw in node.keywords]:
+                nested = nested or self._describe_origin(arg, taint)
+            if nested:
+                return nested
+
+        if isinstance(node, ast.Attribute):
+            qualname = self._qualname(node)
+            if qualname == 'sys.argv' or qualname.startswith('sys.argv'):
+                return 'sys.argv', ['sys.argv']
+            if self._is_request_source_name(qualname):
+                return qualname, [qualname]
+
+        if isinstance(node, ast.Subscript):
+            base = self._describe_origin(node.value, taint)
+            if base:
+                return base
+            qualname = self._qualname(node.value)
+            if qualname == 'sys.argv' or self._is_request_source_name(qualname):
+                key = node.slice.value if isinstance(node.slice, ast.Constant) else None
+                label = '%s[%r]' % (qualname, key) if key is not None else qualname
+                return label, [label]
+
+        if isinstance(node, ast.JoinedStr):
+            for value in node.values:
+                if isinstance(value, ast.FormattedValue):
+                    found = self._describe_origin(value.value, taint)
+                    if found:
+                        return found
+
+        if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Mod)):
+            return self._describe_origin(node.left, taint) or self._describe_origin(node.right, taint)
+
+        if isinstance(node, ast.Starred):
+            return self._describe_origin(node.value, taint)
+
+        return None
+
+    def _collect_taint_in_scope(self, scope_node, seed_taint=None):
+        taint = dict(seed_taint or {})
+        if isinstance(scope_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for arg in scope_node.args.args + scope_node.args.kwonlyargs:
+                if arg.arg == 'self':
+                    continue
+                taint[arg.arg] = {
+                    'origin': 'function parameter %s' % arg.arg,
+                    'chain': ['function parameter %s' % arg.arg, arg.arg],
+                }
+            if scope_node.args.vararg:
+                name = scope_node.args.vararg.arg
+                taint[name] = {'origin': 'function parameter %s' % name, 'chain': [name]}
+            if scope_node.args.kwarg:
+                name = scope_node.args.kwarg.arg
+                taint[name] = {'origin': 'function parameter %s' % name, 'chain': [name]}
+
+        changed = True
+        while changed:
+            changed = False
+            for node in ast.walk(scope_node):
+                targets = []
+                value = None
+                if isinstance(node, ast.Assign):
+                    targets = node.targets
+                    value = node.value
+                elif isinstance(node, ast.AnnAssign) and node.value is not None:
+                    targets = [node.target]
+                    value = node.value
+                elif isinstance(node, ast.AugAssign):
+                    targets = [node.target]
+                    value = node.value
+                if value is None:
+                    continue
+                found = self._describe_origin(value, taint)
+                if not found:
+                    continue
+                origin, chain = found
+                for target in targets:
+                    if isinstance(target, ast.Name):
+                        new_chain = chain if chain[-1:] == [target.id] else chain + [target.id]
+                        previous = taint.get(target.id)
+                        if not previous or previous.get('origin') != origin or previous.get('chain') != new_chain:
+                            taint[target.id] = {'origin': origin, 'chain': new_chain}
+                            changed = True
+        return taint
+
+    def _scope_for_line(self, tree, line):
+        best = tree
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                start = getattr(node, 'lineno', 1)
+                end = getattr(node, 'end_lineno', start)
+                if start <= line <= end:
+                    if best is tree or start >= getattr(best, 'lineno', 0):
+                        best = node
+        return best
+
+    def _sink_kind(self, qualname, vuln_type):
+        vuln_type = (vuln_type or '').lower()
+        attr = qualname.split('.')[-1] if qualname else ''
+        sql_sinks = {'execute', 'executemany', 'executescript', 'raw'}
+        cmd_sinks = {'system', 'popen', 'run', 'call', 'Popen', 'eval', 'exec'}
+        path_sinks = {'open', 'Path', 'read_text', 'write_text', 'read_bytes'}
+        eval_sinks = {'eval', 'exec'}
+        pickle_sinks = {'loads', 'load'}
+        crypto_sinks = {'md5', 'sha1', 'des', 'crypt'}
+
+        if 'sql' in vuln_type:
+            return attr in sql_sinks
+        if 'command' in vuln_type:
+            return attr in cmd_sinks or qualname.startswith('subprocess.')
+        if 'path' in vuln_type:
+            return attr in path_sinks
+        if 'deseriali' in vuln_type:
+            return 'pickle' in qualname and attr in pickle_sinks
+        if 'eval' in vuln_type:
+            return attr in eval_sinks
+        if 'crypto' in vuln_type:
+            return attr in crypto_sinks
+        if 'xss' in vuln_type:
+            return False
+        return attr in sql_sinks | cmd_sinks | path_sinks | eval_sinks | crypto_sinks
+
+    def _format_sink_call(self, call_node):
+        qualname = self._qualname(call_node.func) or self._call_name(call_node.func) or 'call'
+        line = getattr(call_node, 'lineno', None)
+        display = '%s()' % qualname
+        if line:
+            display = '%s at line %s' % (display, line)
+        return display
+
+    def _nodes_on_lines(self, tree, start_line, end_line):
+        found = []
+        for node in ast.walk(tree):
+            line = getattr(node, 'lineno', None)
+            if line is None:
+                continue
+            node_end = getattr(node, 'end_lineno', line)
+            if node_end < start_line or line > end_line:
+                continue
+            found.append(node)
+        return found
+
+    def _python_path_for_finding(self, tree, module_taint, vuln):
+        vuln_type = vuln.get('vulnerability_type', '')
+        start_line = int(vuln.get('line') or 1)
+        end_line = int(vuln.get('end_line') or start_line)
+        scope = self._scope_for_line(tree, start_line)
+        taint = self._collect_taint_in_scope(scope, module_taint)
+        nodes = self._nodes_on_lines(tree, start_line, end_line)
+
+        source = None
+        sink = None
+        chain = []
+
+        type_lower = vuln_type.lower()
+        if 'hardcoded' in type_lower:
+            for node in nodes:
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            source = 'Hardcoded assignment to %s' % target.id
+                            sink = 'variable %s' % target.id
+                            chain = [target.id, 'credential use']
+                            break
+                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                    source = 'Hardcoded assignment to %s' % node.target.id
+                    sink = 'variable %s' % node.target.id
+                    chain = [node.target.id, 'credential use']
+            if source:
+                return source, sink, ' → '.join(chain)
+
+        if 'xss' in type_lower:
+            for node in nodes:
+                if isinstance(node, ast.Return) and node.value is not None:
+                    found = self._describe_origin(node.value, taint)
+                    sink = 'return of HTML at line %s' % getattr(node, 'lineno', start_line)
+                    if found:
+                        source, chain = found[0], found[1] + [sink]
+                    else:
+                        source = None
+                    if sink:
+                        attack = ' → '.join(chain) if chain else None
+                        return source, sink, attack
+
+        sink_calls = [
+            node for node in nodes
+            if isinstance(node, ast.Call) and self._sink_kind(self._qualname(node.func) or self._call_name(node.func), vuln_type)
+        ]
+        sink_calls.sort(key=lambda node: getattr(node, 'lineno', start_line))
+        if sink_calls:
+            call = sink_calls[0]
+            sink = self._format_sink_call(call)
+            origins = []
+            for arg in list(call.args) + [kw.value for kw in call.keywords]:
+                found = self._describe_origin(arg, taint)
+                if found:
+                    origins.append(found)
+            if origins:
+                origin, origin_chain = origins[0]
+                source = origin
+                chain = origin_chain + [sink]
+            return source, sink, ' → '.join(chain) if chain else None
+
+        return None, None, None
+
     def analyze_paths(self, code, language, vulnerabilities):
         paths = []
-        for vuln in vulnerabilities:
-            vuln_type = vuln.get('vulnerability_type', '').lower()
+        python_tree = None
+        module_taint = {}
+        if language == 'python':
+            try:
+                python_tree = ast.parse(code)
+                module_taint = self._collect_taint_in_scope(python_tree)
+            except SyntaxError:
+                python_tree = None
 
-            if 'sql' in vuln_type:
-                paths.append({
-                    'source': 'User Input → HTTP Request Parameter',
-                    'sink': 'Database Query Execution',
-                    'flow': 'User input flows directly to SQL query without sanitization',
-                    'remediation': 'Use parameterized queries to break the attack path',
-                    'attack_chain': 'Input → Query Construction → Database Execution → Data Exposure'
-                })
-            elif 'hardcoded' in vuln_type:
-                paths.append({
-                    'source': 'Hardcoded value in source code',
-                    'sink': 'Authentication/API Call',
-                    'flow': 'Credentials exposed in code → Attacker can read them',
-                    'remediation': 'Move credentials to environment variables',
-                    'attack_chain': 'Code Access → Credential Extraction → Unauthorized Access'
-                })
-            elif 'command' in vuln_type:
-                paths.append({
-                    'source': 'User Input → Form/URL Parameter',
-                    'sink': 'System Command Execution',
-                    'flow': 'User input passed to shell command without validation',
-                    'remediation': 'Use subprocess with argument list, avoid shell=True',
-                    'attack_chain': 'Input Injection → Shell Execution → System Compromise'
-                })
-            elif 'path' in vuln_type:
-                paths.append({
-                    'source': 'User Input → File Path Parameter',
-                    'sink': 'File System Operation',
-                    'flow': 'User input used to construct file path without validation',
-                    'remediation': 'Validate and sanitize input, use allowlist',
-                    'attack_chain': 'Path Injection → Directory Traversal → File Access'
-                })
-            elif 'xss' in vuln_type:
-                paths.append({
-                    'source': 'User Input → HTTP Request Parameter',
-                    'sink': 'HTML Rendering',
-                    'flow': 'User input rendered directly in HTML without sanitization',
-                    'remediation': 'Escape HTML output or use CSP headers',
-                    'attack_chain': 'Input Injection → HTML Rendering → Script Execution'
-                })
-            elif 'eval' in vuln_type or 'deseriali' in vuln_type:
-                paths.append({
-                    'source': 'Untrusted input / serialized payload',
-                    'sink': 'eval()/exec() or pickle.loads()',
-                    'flow': 'Untrusted data reaches a code-execution primitive without validation',
-                    'remediation': 'Use ast.literal_eval or JSON; never unpickle untrusted data',
-                    'attack_chain': 'Payload Injection → Code Execution → System Compromise'
-                })
-            elif 'crypto' in vuln_type:
-                paths.append({
-                    'source': 'Sensitive data (passwords, tokens, files)',
-                    'sink': 'Weak hash / encryption routine',
-                    'flow': 'Sensitive data protected with a legacy or weak algorithm',
-                    'remediation': 'Use bcrypt/Argon2 for passwords and SHA-256+ for integrity',
-                    'attack_chain': 'Weak Algorithm → Offline Brute Force → Credential Compromise'
-                })
+        for vuln in vulnerabilities:
+            template = self._path_template_for_type(vuln.get('vulnerability_type', ''))
+            if not template:
+                continue
+
+            path = dict(template)
+            path['vulnerability_type'] = vuln.get('vulnerability_type', '')
+
+            if python_tree is not None:
+                source, sink, attack_chain = self._python_path_for_finding(python_tree, module_taint, vuln)
+                if source:
+                    path['source'] = source
+                if sink:
+                    path['sink'] = sink
+                if attack_chain:
+                    path['attack_chain'] = attack_chain
+                if source and sink:
+                    path['flow'] = '%s flows into %s without sanitization' % (source, sink)
+
+            paths.append(path)
         return paths
 
     def prioritize_vulnerabilities(self, vulnerabilities):
@@ -602,6 +884,12 @@ class VulnPathAI:
             'medium': counts['Medium'],
             'low': counts['Low'],
         }
+        try:
+            with open(file_path, 'r', encoding='utf-8') as source_file:
+                combined_code = source_file.read()
+            results['path_analysis'] = self.analyze_paths(combined_code, 'python', combined)
+        except OSError:
+            pass
         return results
 
     def _sarif_level_for_severity(self, severity):

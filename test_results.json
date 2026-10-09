@@ -1,12 +1,265 @@
 {
-  "test_date": "2026-07-21 01:27:53",
+  "test_date": "2026-10-09 21:56:07",
   "results": {
-    "true_positives": 3,
+    "true_positives": 11,
     "false_positives": 0,
-    "true_negatives": 0,
+    "true_negatives": 8,
     "false_negatives": 0,
-    "total_time": 0.002001523971557617,
-    "test_count": 3
+    "total_time": 0.01244807243347168,
+    "test_count": 19,
+    "confidence_threshold": 0.7,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "accuracy": 1.0
   },
-  "grade": "\ud83c\udf1f Excellent"
+  "files": [
+    {
+      "file": "samples/vulnerable/command_os_popen.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 3,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Command Injection",
+        "Command Injection",
+        "Path Traversal"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0020024776458740234
+    },
+    {
+      "file": "samples/vulnerable/command_subprocess_shell.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 3,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Command Injection",
+        "Command Injection",
+        "Path Traversal"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/vulnerable/hardcoded_api_keys.js",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 1,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Hardcoded Credentials"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0010128021240234375
+    },
+    {
+      "file": "samples/vulnerable/hardcoded_password.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 4,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Hardcoded Credentials",
+        "Hardcoded Credentials",
+        "Hardcoded Credentials",
+        "Hardcoded Credentials"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/vulnerable/path_fstring_open.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 1,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Path Traversal"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0013015270233154297
+    },
+    {
+      "file": "samples/vulnerable/path_open_concat.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 1,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Path Traversal"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/vulnerable/sqli_percent_format.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 2,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Sql Injection",
+        "Sql Injection"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.001004934310913086
+    },
+    {
+      "file": "samples/vulnerable/sqli_string_concat.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 1,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Sql Injection"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0010089874267578125
+    },
+    {
+      "file": "samples/vulnerable/vulnerable_sample.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 4,
+      "low_confidence_findings": 1,
+      "vulnerabilities": [
+        "Sql Injection",
+        "Hardcoded Credentials",
+        "Command Injection",
+        "Hardcoded Credentials"
+      ],
+      "low_confidence": [
+        "Path Traversal"
+      ],
+      "time_seconds": 0.0009975433349609375
+    },
+    {
+      "file": "samples/vulnerable/xss_innerhtml.js",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 1,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Xss"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0009918212890625
+    },
+    {
+      "file": "samples/vulnerable/xss_python_return.py",
+      "expected": "vulnerable",
+      "outcome": "true_positive",
+      "passed": true,
+      "significant_findings": 1,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [
+        "Xss"
+      ],
+      "low_confidence": [],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/safe/env_based_secrets.js",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [],
+      "low_confidence": [],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/safe/env_based_secrets.py",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [],
+      "low_confidence": [],
+      "time_seconds": 0.0010075569152832031
+    },
+    {
+      "file": "samples/safe/escaped_html.js",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [],
+      "low_confidence": [],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/safe/escaped_html.py",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [],
+      "low_confidence": [],
+      "time_seconds": 0.0010001659393310547
+    },
+    {
+      "file": "samples/safe/parameterized_sql.py",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [],
+      "low_confidence": [],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/safe/safe_path_join.py",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 1,
+      "vulnerabilities": [],
+      "low_confidence": [
+        "Path Traversal"
+      ],
+      "time_seconds": 0.0
+    },
+    {
+      "file": "samples/safe/safe_subprocess.py",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [],
+      "low_confidence": [],
+      "time_seconds": 0.0011234283447265625
+    },
+    {
+      "file": "samples/safe/secure_sample.py",
+      "expected": "safe",
+      "outcome": "true_negative",
+      "passed": true,
+      "significant_findings": 0,
+      "low_confidence_findings": 0,
+      "vulnerabilities": [],
+      "low_confidence": [],
+      "time_seconds": 0.0009968280792236328
+    }
+  ],
+  "grade": "Excellent"
 }
