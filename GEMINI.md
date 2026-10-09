@@ -1,7 +1,14 @@
-# VulnPath AI — Project Guidelines
+# VulnPath AI
+Hybrid code-security scanner, stdlib-only Python.
+Files: analyze_hybrid.py (main CLI, regex + merge logic), ast_analyzer.py (Python AST detection),
+SYSTEM_PROMPT.md (LLM prompt for --ai mode), test_benchmark.py, samples/.
 
-- **Project Purpose**: VulnPath AI is a defensive code-security scanner written in Python 3.11+.
-- **Core Workflow**: Read source code -> add line numbers -> send to an LLM -> validate JSON findings -> render a report.
-- **Environment & Secrets**: Never hardcode API keys. Use a `.env` file and keep it in `.gitignore`.
-- **Finding Standards**: Every finding must include a CWE ID, exact evidence (quoted code), and a confidence level. Do not invent CVSS scores or dollar estimates.
-- **Code Style & Maintenance**: Keep code simple and commented. Do not delete existing files without asking.
+Rules:
+- Do NOT rewrite or remove existing detection logic, report formats (JSON/Markdown/SARIF),
+  CLI flags, or working samples.
+- Stdlib only. Do not add packages.
+- Never hardcode API keys. Use environment variables only. Keep .env in .gitignore.
+- Findings keep these fields: cwe_id, severity, confidence, line, suggestion, impact.
+  No invented CVSS scores or dollar estimates.
+- Do not create new top-level packages or folders (no vulnpath/ or prompts/). Edit existing files.
+- Ask before deleting or overwriting any existing file. Make small changes and explain each one.
