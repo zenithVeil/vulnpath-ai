@@ -1,11 +1,11 @@
 {
-  "test_date": "2026-10-09 21:56:07",
+  "test_date": "2026-10-10 16:33:27",
   "results": {
     "true_positives": 11,
     "false_positives": 0,
     "true_negatives": 8,
     "false_negatives": 0,
-    "total_time": 0.01244807243347168,
+    "total_time": 0.06205344200134277,
     "test_count": 19,
     "confidence_threshold": 0.7,
     "precision": 1.0,
@@ -27,7 +27,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0020024776458740234
+      "time_seconds": 0.005515336990356445
     },
     {
       "file": "samples/vulnerable/command_subprocess_shell.py",
@@ -42,7 +42,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.008153200149536133
     },
     {
       "file": "samples/vulnerable/hardcoded_api_keys.js",
@@ -55,7 +55,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0010128021240234375
+      "time_seconds": 0.003713369369506836
     },
     {
       "file": "samples/vulnerable/hardcoded_password.py",
@@ -71,7 +71,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0031490325927734375
     },
     {
       "file": "samples/vulnerable/path_fstring_open.py",
@@ -84,7 +84,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0013015270233154297
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/path_open_concat.py",
@@ -111,7 +111,7 @@
         "Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.001004934310913086
+      "time_seconds": 0.007402181625366211
     },
     {
       "file": "samples/vulnerable/sqli_string_concat.py",
@@ -124,7 +124,7 @@
         "Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0010089874267578125
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/vulnerable_sample.py",
@@ -142,7 +142,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.0009975433349609375
+      "time_seconds": 0.007342338562011719
     },
     {
       "file": "samples/vulnerable/xss_innerhtml.js",
@@ -155,7 +155,7 @@
         "Xss"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0009918212890625
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/xss_python_return.py",
@@ -190,7 +190,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0010075569152832031
+      "time_seconds": 0.008701562881469727
     },
     {
       "file": "samples/safe/escaped_html.js",
@@ -201,7 +201,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0020105838775634766
     },
     {
       "file": "samples/safe/escaped_html.py",
@@ -212,7 +212,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0010001659393310547
+      "time_seconds": 0.00200653076171875
     },
     {
       "file": "samples/safe/parameterized_sql.py",
@@ -223,7 +223,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0044803619384765625
     },
     {
       "file": "samples/safe/safe_path_join.py",
@@ -236,7 +236,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.0
+      "time_seconds": 0.004817485809326172
     },
     {
       "file": "samples/safe/safe_subprocess.py",
@@ -247,7 +247,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0011234283447265625
+      "time_seconds": 0.0
     },
     {
       "file": "samples/safe/secure_sample.py",
@@ -258,7 +258,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0009968280792236328
+      "time_seconds": 0.004761457443237305
     }
   ],
   "grade": "Excellent"

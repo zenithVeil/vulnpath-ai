@@ -647,65 +647,76 @@ class VulnPathAI:
         return found
 
     def _python_path_for_finding(self, tree, module_taint, vuln):
-        vuln_type = vuln.get('vulnerability_type', '')
+        vuln_type = vuln.get('vulnerability_type', '').lower()
         start_line = int(vuln.get('line') or 1)
-        end_line = int(vuln.get('end_line') or start_line)
+        end_line = int(vuln.get('end_lineno') or start_line)
         scope = self._scope_for_line(tree, start_line)
         taint = self._collect_taint_in_scope(scope, module_taint)
         nodes = self._nodes_on_lines(tree, start_line, end_line)
 
         source = None
-        sink = None
+        sink_description = None
         chain = []
 
-        type_lower = vuln_type.lower()
-        if 'hardcoded' in type_lower:
+        # Special handling for hardcoded credentials (not a sink/source flow in the same way)
+        if 'hardcoded' in vuln_type:
             for node in nodes:
-                if isinstance(node, ast.Assign):
-                    for target in node.targets:
-                        if isinstance(target, ast.Name):
-                            source = 'Hardcoded assignment to %s' % target.id
-                            sink = 'variable %s' % target.id
-                            chain = [target.id, 'credential use']
-                            break
-                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-                    source = 'Hardcoded assignment to %s' % node.target.id
-                    sink = 'variable %s' % node.target.id
-                    chain = [node.target.id, 'credential use']
-            if source:
-                return source, sink, ' → '.join(chain)
+                if isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    target_name = None
+                    if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                        target_name = node.targets[0].id
+                    elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                        target_name = node.target.id
 
-        if 'xss' in type_lower:
+                    if target_name:
+                        source = f'Hardcoded value assigned to {target_name}'
+                        sink_description = f'Use of variable {target_name}' # The "sink" is where the credential is used
+                        chain = [source, target_name, 'credential use']
+                        return source, sink_description, ' → '.join(chain)
+
+        # For other vulnerability types, look for a sink call
+        # Sort sink calls by line number to prioritize the earliest one
+        sink_candidates = sorted([
+            node for node in nodes
+            if isinstance(node, ast.Call) and self._sink_kind(self._qualname(node.func) or self._call_name(node.func), vuln_type)
+        ], key=lambda node: getattr(node, 'lineno', start_line))
+
+        # Handle XSS specifically if it's a return statement (common in web frameworks)
+        if 'xss' in vuln_type:
             for node in nodes:
                 if isinstance(node, ast.Return) and node.value is not None:
                     found = self._describe_origin(node.value, taint)
-                    sink = 'return of HTML at line %s' % getattr(node, 'lineno', start_line)
+                    sink_description = f'HTML return at line {getattr(node, "lineno", start_line)}'
                     if found:
-                        source, chain = found[0], found[1] + [sink]
+                        source, source_chain = found
+                        chain = source_chain + [sink_description]
                     else:
-                        source = None
-                    if sink:
-                        attack = ' → '.join(chain) if chain else None
-                        return source, sink, attack
+                        source = 'Untrusted input' # Generic source if specific origin can't be found
+                        chain = [source, sink_description]
+                    return source, sink_description, ' → '.join(chain)
 
-        sink_calls = [
-            node for node in nodes
-            if isinstance(node, ast.Call) and self._sink_kind(self._qualname(node.func) or self._call_name(node.func), vuln_type)
-        ]
-        sink_calls.sort(key=lambda node: getattr(node, 'lineno', start_line))
-        if sink_calls:
-            call = sink_calls[0]
-            sink = self._format_sink_call(call)
-            origins = []
-            for arg in list(call.args) + [kw.value for kw in call.keywords]:
-                found = self._describe_origin(arg, taint)
-                if found:
-                    origins.append(found)
-            if origins:
-                origin, origin_chain = origins[0]
-                source = origin
-                chain = origin_chain + [sink]
-            return source, sink, ' → '.join(chain) if chain else None
+        # If a direct sink call is found
+        if sink_candidates:
+            sink_node = sink_candidates[0]
+            sink_description = self._format_sink_call(sink_node)
+            
+            # Find the tainted argument to the sink
+            found_origin = None
+            for arg in list(sink_node.args) + [kw.value for kw in sink_node.keywords]:
+                origin_info = self._describe_origin(arg, taint)
+                if origin_info:
+                    found_origin = origin_info
+                    break
+
+            if found_origin:
+                source, source_chain = found_origin
+                chain = source_chain + [sink_description]
+            else:
+                # If no specific tainted origin found, but it's a sink, assume untrusted input
+                source = 'Untrusted input'
+                chain = [source, sink_description]
+            
+            return source, sink_description, ' → '.join(chain)
 
         return None, None, None
 
