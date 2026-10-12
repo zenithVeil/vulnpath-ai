@@ -1142,32 +1142,24 @@ def build_ai_prompt(target_path, interactive=False):
 
     with open(target_path, 'r', encoding='utf-8') as f:
         target_code = f.read()
-
-    header = """
+header = """
 ╔══════════════════════════════════════════════════════╗
-║  VulnPath-AI — GPT-5.6 Analysis Mode               ║
+║  VulnPath-AI — AI Deep Analysis Mode               ║
 ╚══════════════════════════════════════════════════════╝
 
-Step 1: Open ChatGPT or Codex (chat.openai.com)
-Step 2: Paste the SYSTEM_PROMPT.md content below
+Step 1: Open any AI chat (ChatGPT, Claude, Gemini, Cursor, etc.)
+Step 2: Paste the SYSTEM_PROMPT.md content below as the system / first message
 Step 3: Paste the target code below
-Step 4: GPT-5.6 will analyze it with attack paths, CVSS, business impact
+Step 4: The model will analyze it with attack paths, impact, and fix suggestions
 """.strip("\n")
 
-    sections = [
-        header,
-        "─── SYSTEM PROMPT ───\n" + system_prompt,
-        "─── CODE TO ANALYZE ───\n" + target_code,
-        "── END ──",
+  if interactive:
+    prompts = [
+        "Press Enter to show the AI analysis instructions...",
+        "Press Enter to show SYSTEM_PROMPT.md...",
+        "Press Enter to show the target code...",
+        "Press Enter to finish...",
     ]
-
-    if interactive:
-        prompts = [
-            "Press Enter to show the GPT-5.6 analysis instructions...",
-            "Press Enter to show SYSTEM_PROMPT.md...",
-            "Press Enter to show the target code...",
-            "Press Enter to finish...",
-        ]
         for prompt, section in zip(prompts, sections):
             input(prompt)
             print(section)
