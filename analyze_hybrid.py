@@ -1142,7 +1142,7 @@ def build_ai_prompt(target_path, interactive=False):
 
     with open(target_path, 'r', encoding='utf-8') as f:
         target_code = f.read()
-header = """
+    header = """
 ╔══════════════════════════════════════════════════════╗
 ║  VulnPath-AI — AI Deep Analysis Mode               ║
 ╚══════════════════════════════════════════════════════╝
@@ -1153,8 +1153,10 @@ Step 3: Paste the target code below
 Step 4: The model will analyze it with attack paths, impact, and fix suggestions
 """.strip("\n")
 
-  if interactive:
-    prompts = [
+    sections = [header, system_prompt, target_code]
+
+    if interactive:
+        prompts = [
         "Press Enter to show the AI analysis instructions...",
         "Press Enter to show SYSTEM_PROMPT.md...",
         "Press Enter to show the target code...",
@@ -1177,8 +1179,8 @@ def main():
     parser.add_argument('--recursive', '-r', action='store_true', help='Recursive scan')
     parser.add_argument('--format', '-f', choices=['json', 'markdown', 'sarif'], default='markdown')
     parser.add_argument('--output', '-o', help='Output file')
-    parser.add_argument('--ai', '-a', action='store_true', help='Generate a prompt for GPT-5.6 analysis instead of regex scanning')
-    parser.add_argument('--interactive', action='store_true', help='Generate the GPT-5.6 prompt step by step with prompts')
+    parser.add_argument('--ai', '-a', action='store_true', help='Generate a prompt for AI Deep Analysis Mode instead of regex scanning')
+    parser.add_argument('--interactive', action='store_true', help='Generate the AI Deep Analysis Mode prompt step by step with prompts')
     parser.add_argument('--skip-dirs', default='venv,.venv,env,node_modules,__pycache__,.git,.tox,dist,build', help='Comma-separated directory names to skip during directory scans (default: venv,.venv,env,node_modules,__pycache__,.git,.tox,dist,build)')
     parser.add_argument('--ext', default='.py,.js,.jsx,.ts,.tsx,.java,.php,.rb,.go,.html', help='Comma-separated file extensions to include during directory scans (default: .py,.js,.jsx,.ts,.tsx,.java,.php,.rb,.go,.html)')
     parser.add_argument('--context', type=int, default=0, help='Include N lines of surrounding source code in Markdown and JSON findings (default: 0)')
