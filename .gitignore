@@ -31,3 +31,5 @@ analyze_final.py
 finetune_vuln.py
 model_training.py
 uploads/
+
+results.sarif
