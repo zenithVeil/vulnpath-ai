@@ -1,0 +1,808 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "VulnPath-AI",
+          "informationUri": "https://github.com/",
+          "rules": [
+            {
+              "id": "CWE-798",
+              "name": "Hardcoded Credentials",
+              "shortDescription": {
+                "text": "Hardcoded Credentials"
+              },
+              "fullDescription": {
+                "text": "Hardcoded credentials found in code"
+              },
+              "help": {
+                "text": "Use environment variables: process.env.DB_PASSWORD"
+              },
+              "properties": {
+                "tags": [
+                  "CWE-798"
+                ],
+                "security-severity": "9.45",
+                "severity": "Critical"
+              }
+            },
+            {
+              "id": "CWE-79",
+              "name": "Xss",
+              "shortDescription": {
+                "text": "Xss"
+              },
+              "fullDescription": {
+                "text": "XSS: User input directly inserted into HTML without sanitization"
+              },
+              "help": {
+                "text": "Use textContent or sanitize: DOMPurify.sanitize(input)"
+              },
+              "properties": {
+                "tags": [
+                  "CWE-79"
+                ],
+                "security-severity": "7.375",
+                "severity": "High"
+              }
+            },
+            {
+              "id": "CWE-78",
+              "name": "Command Injection",
+              "shortDescription": {
+                "text": "Command Injection"
+              },
+              "fullDescription": {
+                "text": "Command Injection: user input used in a system command"
+              },
+              "help": {
+                "text": "Use the argument-list form: subprocess.run([\"ls\", user_input])"
+              },
+              "properties": {
+                "tags": [
+                  "CWE-78"
+                ],
+                "security-severity": "9.425",
+                "severity": "Critical"
+              }
+            },
+            {
+              "id": "CWE-22",
+              "name": "Path Traversal",
+              "shortDescription": {
+                "text": "Path Traversal"
+              },
+              "fullDescription": {
+                "text": "Path Traversal: User-controlled path data used in file operations"
+              },
+              "help": {
+                "text": "Resolve with os.path.abspath(), then verify the resolved path starts with the expected base directory prefix before opening it."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-22"
+                ],
+                "security-severity": "7.375",
+                "severity": "High"
+              }
+            },
+            {
+              "id": "CWE-89",
+              "name": "Sql Injection",
+              "shortDescription": {
+                "text": "Sql Injection"
+              },
+              "fullDescription": {
+                "text": "SQL Injection: User input concatenated into SQL query"
+              },
+              "help": {
+                "text": "Use parameterized queries: cursor.execute(\"SELECT * FROM users WHERE id=?\", (user_id,))"
+              },
+              "properties": {
+                "tags": [
+                  "CWE-89"
+                ],
+                "security-severity": "9.4",
+                "severity": "Critical"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded credentials found in code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\hardcoded_api_keys.js"
+                },
+                "region": {
+                  "startLine": 4,
+                  "endLine": 4,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use environment variables: process.env.DB_PASSWORD",
+            "confidence": 0.8999999999999999,
+            "vulnerability_type": "Hardcoded Credentials",
+            "impact": "Unauthorized access, data breach, account takeover"
+          }
+        },
+        {
+          "ruleId": "CWE-79",
+          "level": "warning",
+          "message": {
+            "text": "XSS: User input directly inserted into HTML without sanitization"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\xss_innerhtml.js"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "High",
+            "fix": "Use textContent or sanitize: DOMPurify.sanitize(input)",
+            "confidence": 0.75,
+            "vulnerability_type": "Xss",
+            "impact": "Session hijacking, defacement, phishing"
+          }
+        },
+        {
+          "ruleId": "CWE-78",
+          "level": "error",
+          "message": {
+            "text": "Command Injection: user input used in a system command"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\command_os_popen.py"
+                },
+                "region": {
+                  "startLine": 9,
+                  "endLine": 9,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use the argument-list form: subprocess.run([\"ls\", user_input])",
+            "confidence": 0.85,
+            "vulnerability_type": "Command Injection",
+            "impact": "Remote code execution, system compromise"
+          }
+        },
+        {
+          "ruleId": "CWE-78",
+          "level": "error",
+          "message": {
+            "text": "Command Injection: User-controlled input is concatenated into shell commands"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\command_os_popen.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use shlex.quote() for shell arguments or pass command arguments as a list to subprocess without shell=True.",
+            "confidence": 0.7999999999999999,
+            "vulnerability_type": "Command Injection",
+            "impact": "Remote code execution, system compromise"
+          }
+        },
+        {
+          "ruleId": "CWE-22",
+          "level": "warning",
+          "message": {
+            "text": "Path Traversal: User-controlled path data used in file operations"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\command_os_popen.py"
+                },
+                "region": {
+                  "startLine": 9,
+                  "endLine": 9,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "High",
+            "fix": "Resolve with os.path.abspath(), then verify the resolved path starts with the expected base directory prefix before opening it.",
+            "confidence": 0.75,
+            "vulnerability_type": "Path Traversal",
+            "impact": "Unauthorized file access, data disclosure"
+          }
+        },
+        {
+          "ruleId": "CWE-78",
+          "level": "error",
+          "message": {
+            "text": "Command Injection: user input used in a system command"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\command_subprocess_shell.py"
+                },
+                "region": {
+                  "startLine": 9,
+                  "endLine": 9,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use the argument-list form: subprocess.run([\"ls\", user_input])",
+            "confidence": 0.9,
+            "vulnerability_type": "Command Injection",
+            "impact": "Remote code execution, system compromise"
+          }
+        },
+        {
+          "ruleId": "CWE-78",
+          "level": "error",
+          "message": {
+            "text": "Command Injection: User-controlled input is concatenated into shell commands"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\command_subprocess_shell.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use shlex.quote() for shell arguments or pass command arguments as a list to subprocess without shell=True.",
+            "confidence": 0.7999999999999999,
+            "vulnerability_type": "Command Injection",
+            "impact": "Remote code execution, system compromise"
+          }
+        },
+        {
+          "ruleId": "CWE-22",
+          "level": "warning",
+          "message": {
+            "text": "Path Traversal: User-controlled path data used in file operations"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\command_subprocess_shell.py"
+                },
+                "region": {
+                  "startLine": 9,
+                  "endLine": 9,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "High",
+            "fix": "Resolve with os.path.abspath(), then verify the resolved path starts with the expected base directory prefix before opening it.",
+            "confidence": 0.75,
+            "vulnerability_type": "Path Traversal",
+            "impact": "Unauthorized file access, data disclosure"
+          }
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded credentials found in code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\hardcoded_password.py"
+                },
+                "region": {
+                  "startLine": 3,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use environment variables: password = os.environ.get(\"DB_PASSWORD\")",
+            "confidence": 0.8999999999999999,
+            "vulnerability_type": "Hardcoded Credentials",
+            "impact": "Unauthorized access, data breach, account takeover"
+          }
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded credentials (password/secret/token/api key) in code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\hardcoded_password.py"
+                },
+                "region": {
+                  "startLine": 4,
+                  "endLine": 4,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Load secrets from environment variables or a secrets manager",
+            "confidence": 0.9,
+            "vulnerability_type": "Hardcoded Credentials",
+            "impact": "Credential leakage and unauthorized access"
+          }
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded credentials (password/secret/token/api key) in code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\hardcoded_password.py"
+                },
+                "region": {
+                  "startLine": 5,
+                  "endLine": 5,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Load secrets from environment variables or a secrets manager",
+            "confidence": 0.9,
+            "vulnerability_type": "Hardcoded Credentials",
+            "impact": "Credential leakage and unauthorized access"
+          }
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded credentials (password/secret/token/api key) in code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\hardcoded_password.py"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Load secrets from environment variables or a secrets manager",
+            "confidence": 0.9,
+            "vulnerability_type": "Hardcoded Credentials",
+            "impact": "Credential leakage and unauthorized access"
+          }
+        },
+        {
+          "ruleId": "CWE-22",
+          "level": "warning",
+          "message": {
+            "text": "Path Traversal: User-controlled path data used in file operations"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\path_fstring_open.py"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "High",
+            "fix": "Resolve with os.path.abspath(), then verify the resolved path starts with the expected base directory prefix before opening it.",
+            "confidence": 0.75,
+            "vulnerability_type": "Path Traversal",
+            "impact": "Unauthorized file access, data disclosure"
+          }
+        },
+        {
+          "ruleId": "CWE-22",
+          "level": "warning",
+          "message": {
+            "text": "Path Traversal: User-controlled path data used in file operations"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\path_open_concat.py"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "High",
+            "fix": "Resolve with os.path.abspath(), then verify the resolved path starts with the expected base directory prefix before opening it.",
+            "confidence": 0.75,
+            "vulnerability_type": "Path Traversal",
+            "impact": "Unauthorized file access, data disclosure"
+          }
+        },
+        {
+          "ruleId": "CWE-89",
+          "level": "error",
+          "message": {
+            "text": "SQL Injection: User input concatenated into SQL query"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\sqli_percent_format.py"
+                },
+                "region": {
+                  "startLine": 10,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use parameterized queries: cursor.execute(\"SELECT * FROM users WHERE id=?\", (user_id,))",
+            "confidence": 0.8,
+            "vulnerability_type": "Sql Injection",
+            "impact": "Full database compromise, data theft, data modification"
+          }
+        },
+        {
+          "ruleId": "CWE-89",
+          "level": "error",
+          "message": {
+            "text": "SQL Injection: User input concatenated into SQL query"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\sqli_percent_format.py"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use parameterized queries: cursor.execute(\"SELECT * FROM users WHERE id=?\", (user_id,))",
+            "confidence": 0.75,
+            "vulnerability_type": "Sql Injection",
+            "impact": "Full database compromise, data theft, data modification"
+          }
+        },
+        {
+          "ruleId": "CWE-89",
+          "level": "error",
+          "message": {
+            "text": "SQL Injection: User input concatenated into SQL query"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\sqli_string_concat.py"
+                },
+                "region": {
+                  "startLine": 10,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use parameterized queries: cursor.execute(\"SELECT * FROM users WHERE id=?\", (user_id,))",
+            "confidence": 0.75,
+            "vulnerability_type": "Sql Injection",
+            "impact": "Full database compromise, data theft, data modification"
+          }
+        },
+        {
+          "ruleId": "CWE-89",
+          "level": "error",
+          "message": {
+            "text": "SQL Injection: User input concatenated into SQL query"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 16,
+                  "endLine": 30,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use parameterized queries: cursor.execute(\"SELECT * FROM users WHERE id=?\", (user_id,))",
+            "confidence": 0.9000000000000001,
+            "vulnerability_type": "Sql Injection",
+            "impact": "Full database compromise, data theft, data modification"
+          }
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded credentials (password/secret/token/api key) in code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Load secrets from environment variables or a secrets manager",
+            "confidence": 0.9,
+            "vulnerability_type": "Hardcoded Credentials",
+            "impact": "Credential leakage and unauthorized access"
+          }
+        },
+        {
+          "ruleId": "CWE-78",
+          "level": "error",
+          "message": {
+            "text": "Command Injection: user input used in a system command"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 30,
+                  "endLine": 30,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use the argument-list form: subprocess.run([\"ls\", user_input])",
+            "confidence": 0.85,
+            "vulnerability_type": "Command Injection",
+            "impact": "Remote code execution, system compromise"
+          }
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded credentials found in code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 7,
+                  "endLine": 7,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "Critical",
+            "fix": "Use environment variables: password = os.environ.get(\"DB_PASSWORD\")",
+            "confidence": 0.75,
+            "vulnerability_type": "Hardcoded Credentials",
+            "impact": "Unauthorized access, data breach, account takeover"
+          }
+        },
+        {
+          "ruleId": "CWE-22",
+          "level": "warning",
+          "message": {
+            "text": "File path built from potentially untrusted input"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 23,
+                  "endLine": 23,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "High",
+            "fix": "Resolve the path and verify it stays inside an allowed base directory",
+            "confidence": 0.5,
+            "vulnerability_type": "Path Traversal",
+            "impact": "Unauthorized file access, data disclosure"
+          }
+        },
+        {
+          "ruleId": "CWE-79",
+          "level": "warning",
+          "message": {
+            "text": "Cross-Site Scripting (XSS): User input rendered in HTML"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "samples\\vulnerable\\xss_python_return.py"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": ""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "High",
+            "fix": "Escape HTML output: return escape(input)",
+            "confidence": 0.75,
+            "vulnerability_type": "Xss",
+            "impact": "Session hijacking, defacement, phishing"
+          }
+        }
+      ]
+    }
+  ]
+}

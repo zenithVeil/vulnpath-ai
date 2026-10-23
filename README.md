@@ -166,6 +166,41 @@ Results are saved to `test_results.json`.
 
 ---
 
+
+## 🔁 CI / SARIF
+
+VulnPath-AI can run in CI and upload SARIF for GitHub Code Scanning style results.
+
+### GitHub Actions workflow
+
+`.github/workflows/security-scan.yml` runs on push and pull requests to `main`. It:
+
+1. Checks out the repository
+2. Sets up Python
+3. Installs VulnPath-AI editable (`pip install -e .`)
+4. Runs the scanner over the repo with SARIF output:
+   ```bash
+   python analyze_hybrid.py . --dir --format sarif -o results.sarif
+   ```
+5. Uploads `results.sarif` with `github/codeql-action/upload-sarif@v3`
+
+The scan step uses `|| true` so the workflow does not fail the whole CI on findings. Findings are suggestions for review, not auto-exploits — a human should triage each result before acting on it.
+
+### Viewing SARIF results
+
+- After a workflow run, open the **Security** tab → **Code scanning** in GitHub to view uploaded SARIF results.
+- Locally, regenerate and inspect the file:
+  ```bash
+  python analyze_hybrid.py . --dir --format sarif -o results.sarif
+  python -c "import json; json.load(open('results.sarif', encoding='utf-8')); print('SARIF JSON OK')"
+  ```
+- SARIF can also be opened in any SARIF-compatible viewer or converted to other formats.
+
+### Safety note
+
+VulnPath-AI only reports potential weaknesses with fix suggestions. It does not generate payloads, exploit chains, or instructions for attacking systems. CI findings are leads for a security review, not confirmed vulnerabilities.
+
+
 ## 🤝 Contributing
 
 We welcome small, focused contributions:
