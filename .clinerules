@@ -1,0 +1,12 @@
+Project: VulnPath-AI — Python hybrid security scanner.
+
+Rules:
+- Edit existing files only (analyze_hybrid.py, ast_analyzer.py, test_benchmark.py, README.md, samples/).
+- Do not rewrite the whole project.
+- Keep report formats: JSON, Markdown, SARIF.
+- Keep finding fields: cwe_id, severity, confidence, line, suggestion, impact.
+- Fix suggestions only. No attack/exploit features.
+- Stdlib-first. Do not add new packages unless asked.
+- Never hardcode API keys.
+- Small changes. Short # comments only when asked.
+- Target: Python AI/agent-app scanner, ~15-20 rules, honest scope.
