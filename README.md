@@ -201,6 +201,42 @@ The scan step uses `|| true` so the workflow does not fail the whole CI on findi
 VulnPath-AI only reports potential weaknesses with fix suggestions. It does not generate payloads, exploit chains, or instructions for attacking systems. CI findings are leads for a security review, not confirmed vulnerabilities.
 
 
+## 📋 Custom Rules
+
+VulnPath-AI supports external YAML rule packs so you can add detection rules without changing the scanner code. Rules are loaded from the `rules/` directory at startup (PyYAML is optional; if it is not installed, built-in rules are used).
+
+### Adding a YAML rule
+
+Create a file under `rules/`, for example `rules/my_rules.yaml`:
+
+```yaml
+- id: my_custom_rule
+  name: My Custom Rule
+  cwe: CWE-798
+  severity: Critical
+  patterns:
+    - "my_secret\\s*[:=]\\s*[\"\\'][^\"\\']+[\"\\']"
+  suggestion: "Load secrets from environment variables."
+  impact: "Unauthorized access, data breach"
+```
+
+Each rule supports these fields:
+- `id` — unique rule identifier (used as the finding key)
+- `name` — human-readable rule name
+- `cwe` — CWE identifier (e.g. `CWE-798`)
+- `severity` — `Critical`, `High`, `Medium`, or `Low`
+- `patterns` — list of regex strings matched (case-insensitive) against source lines
+- `suggestion` — fix suggestion included in every finding
+- `impact` — business impact description
+
+Rules with an `id` that already exists in the built-in set are skipped (built-ins take precedence). New rule IDs are added alongside built-ins.
+
+### Safety note
+
+Custom rules must follow the fix-suggestions-only philosophy: include remediation guidance, not payloads or exploit instructions.
+
+---
+
 ## 🤝 Contributing
 
 We welcome small, focused contributions:

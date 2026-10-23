@@ -181,6 +181,47 @@ class VulnPathAI:
             }
         }
 
+        # Merge external YAML rules (optional; stdlib-first if PyYAML is missing).
+        for _rule_key, _rule_info in self._load_yaml_rules().items():
+            if _rule_key not in self.patterns.get("python", {}):
+                self.patterns.setdefault("python", {})[_rule_key] = _rule_info
+
+# Load detection rules from rules/*.yaml if PyYAML is available.
+    def _load_yaml_rules(self):
+        try:
+            import yaml
+        except ImportError:
+            return {}
+
+        rules_dir = Path(__file__).resolve().parent / "rules"
+        if not rules_dir.is_dir():
+            return {}
+
+        loaded = {}
+        for yaml_file in sorted(rules_dir.glob("*.yaml")) + sorted(rules_dir.glob("*.yml")):
+            try:
+                with open(yaml_file, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or []
+            except Exception:
+                continue
+            if not isinstance(data, list):
+                continue
+            for rule in data:
+                if not isinstance(rule, dict):
+                    continue
+                rule_id = str(rule.get("id", "yaml_rule"))
+                key = rule_id.lower().replace(" ", "_").replace("-", "_")
+                loaded[key] = {
+                    "cwe": rule.get("cwe", "N/A"),
+                    "severity": rule.get("severity", "Medium"),
+                    "patterns": rule.get("patterns", []),
+                    "description": rule.get("name", rule_id),
+                    "fix": rule.get("suggestion", "Review and remediate"),
+                    "example_attack": "N/A",
+                    "impact": rule.get("impact", "N/A"),
+                }
+        return loaded
+
 # Convert a regex match span to (start_line, end_line).
     def _line_span_for_match(self, code, match):
         line = code.count('\n', 0, match.start()) + 1
