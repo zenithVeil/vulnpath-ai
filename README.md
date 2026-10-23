@@ -237,6 +237,49 @@ Custom rules must follow the fix-suggestions-only philosophy: include remediatio
 
 ---
 
+
+## 🔧 Apply fixes (optional)
+
+VulnPath-AI is **suggest-only by default**. It reports vulnerabilities with fix suggestions and does not modify your code unless you explicitly opt in.
+
+### Enable fix application
+
+```
+# Show what would change (no files are modified)
+python analyze_hybrid.py samples/sqli_example.py --apply-fix --dry-run
+
+# Apply safe fixes after confirming each one
+python analyze_hybrid.py samples/sqli_example.py --apply-fix
+
+# Apply without confirmation prompts (use with care)
+python analyze_hybrid.py samples/sqli_example.py --apply-fix --yes
+```
+
+### Safety rules (always enforced)
+
+- **Default off:** no files are modified unless `--apply-fix` is passed.
+- **Backup before write:** a `file.py.bak` copy is created before any change.
+- **Confirmation required:** each fix is confirmed interactively unless `--yes` is used.
+- **High-confidence only:** only simple, high-confidence fixes are applied; uncertain findings stay suggestion-only.
+- **No network, no exploits:** the fixer never makes network calls and never generates attack payloads.
+- **Target path only:** changes are limited to the file(s) you specify.
+
+### What is auto-fixable (v1)
+
+| Finding class | Auto-fixable? | Notes |
+|---------------|--------------|-------|
+| Hardcoded credentials | Yes (limited) | Replaced with `os.environ.get(...)` only when `import os` is present and the line is a simple `VAR = "literal"` assignment. |
+| SQL injection | No | Requires query restructuring; kept as suggestion only. |
+| Command injection | No | Requires call-argument changes; kept as suggestion only. |
+| eval / exec | No | Semantic change; kept as suggestion only. |
+| Unsafe pickle / deserialization | No | Requires format migration; kept as suggestion only. |
+| Path traversal | No | Requires path-validation logic; kept as suggestion only. |
+| Weak cryptography | No | Requires algorithm migration; kept as suggestion only. |
+| SSRF | No | Requires allowlist logic; kept as suggestion only. |
+
+All non-auto-fixable findings still appear in the report with a fix suggestion for manual remediation.
+
+---
 ## 🤝 Contributing
 
 We welcome small, focused contributions:
