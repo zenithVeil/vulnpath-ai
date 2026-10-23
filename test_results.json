@@ -1,11 +1,11 @@
 {
-  "test_date": "2026-10-23 12:13:48",
+  "test_date": "2026-10-23 12:32:30",
   "results": {
     "true_positives": 11,
     "false_positives": 0,
     "true_negatives": 8,
     "false_negatives": 0,
-    "total_time": 0.01804518699645996,
+    "total_time": 0.05944514274597168,
     "test_count": 19,
     "confidence_threshold": 0.7,
     "precision": 1.0,
@@ -27,7 +27,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.003998517990112305
     },
     {
       "file": "samples/vulnerable/command_subprocess_shell.py",
@@ -42,7 +42,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.006081581115722656
+      "time_seconds": 0.0009999275207519531
     },
     {
       "file": "samples/vulnerable/hardcoded_api_keys.js",
@@ -55,7 +55,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0017194747924804688
+      "time_seconds": 0.001998424530029297
     },
     {
       "file": "samples/vulnerable/hardcoded_password.py",
@@ -71,7 +71,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0005855560302734375
     },
     {
       "file": "samples/vulnerable/path_fstring_open.py",
@@ -124,7 +124,7 @@
         "Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.004438877105712891
     },
     {
       "file": "samples/vulnerable/vulnerable_sample.py",
@@ -142,7 +142,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.008767127990722656
+      "time_seconds": 0.029122352600097656
     },
     {
       "file": "samples/vulnerable/xss_innerhtml.js",
@@ -155,7 +155,7 @@
         "Xss"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0011560916900634766
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/xss_python_return.py",
@@ -168,7 +168,7 @@
         "Xss"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0003209114074707031
+      "time_seconds": 0.01480865478515625
     },
     {
       "file": "samples/safe/env_based_secrets.js",
@@ -201,7 +201,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0014832019805908203
     },
     {
       "file": "samples/safe/escaped_html.py",
@@ -258,7 +258,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0020096302032470703
     }
   ],
   "grade": "Excellent"

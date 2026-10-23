@@ -1,29 +1,23 @@
-# 🛡️ VulnPath-AI
+﻿# 🛡️ VulnPath-AI
 
-[![GitHub Pages](https://img.shields.io/badge/Live-Demo-blue)](https://zenithveil.github.io/vulnpath-ai)
-[![OpenAI Build Week](https://img.shields.io/badge/OpenAI-Build%20Week-purple)](https://openai.com/build-week)
 [![Python](https://img.shields.io/badge/Python-3.6+-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-Verified-blue)](test_results.json)
 
-> **AI-powered security vulnerability detection with path analysis, business impact scoring, and verified detection across 3 vulnerability classes**
+> Offline-first, stdlib-only Python hybrid scanner for AI/agent app code. Detects vulnerabilities, adds path context, and suggests fixes — with no attack or exploit features.
 
 ---
 
 ## 📖 Table of Contents
 
 - [What is VulnPath-AI?](#what-is-vulnpath-ai)
-- [Why VulnPath-AI?](#why-vulnpath-ai)
-- [Features](#features)
-- [How It Works](#how-it-works)
+- [Scope: what it is and what it is not](#scope-what-it-is-and-what-it-is-not)
 - [Quick Start](#quick-start)
 - [Usage Examples](#usage-examples)
-- [Supported Languages](#supported-languages)
-- [Understanding Reports](#understanding-reports)
-- [Common Vulnerability Types](#common-vulnerability-types)
-- [Architecture](#architecture)
+- [Supported Focus: Python AI/agent App Risks](#supported-focus-python-aiagent-app-risks)
+- [Reports: Markdown, JSON, SARIF](#reports-markdown-json-sarif)
+- [Safety: Fix Suggestions Only](#safety-fix-suggestions-only)
 - [Testing & Validation](#testing--validation)
-- [Real-World Usage](#real-world-usage)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -31,528 +25,163 @@
 
 ## 🤔 What is VulnPath-AI?
 
-**VulnPath-AI** is a lightweight, fast, and accurate security vulnerability scanner for source code. It analyzes your code files and identifies potential security weaknesses with:
+**VulnPath-AI** is a lightweight, dependency-free security scanner written in pure Python (standard library only). It scans source files for common weaknesses, adds source-to-sink path context where it can, and reports each finding with a severity, confidence score, and a concrete fix suggestion.
 
-- 🔐 **Vulnerability Detection** - SQL Injection, XSS, Hardcoded Credentials, Command Injection, Path Traversal
-- 🔗 **Path Analysis** - Shows step-by-step attack chains
-- 💰 **Business Impact** - Explains real-world consequences
-- 📊 **Professional Reports** - JSON & Markdown formats
-- 🎯 **Smart Prioritization** - Fix what matters most first
-
-**Unlike traditional scanners, VulnPath-AI provides:**
-- ✅ **Business impact analysis** - Why this vulnerability matters to your business
-- ✅ **Attack path visualization** - How an attacker would exploit it
-- ✅ **Actionable fixes** - Clear code examples to fix each issue
-- ✅ **Confidence scoring** - Know how certain we are about each finding
+It is designed for **AI/agent application code** — Python apps that call LLMs, build prompts, execute tools, or handle secrets — but the same patterns apply to general Python code.
 
 ---
 
-## 🚀 Why VulnPath-AI?
+## ⚖️ Scope: what it is and what it is not
 
-| Feature | VulnPath-AI | Other Tools |
-|---------|-------------|-------------|
-| **Zero Dependencies** | ✅ Just Python | ❌ Heavy dependencies |
-| **No API Keys** | ✅ Free forever | ❌ Paid API required |
-| **No Training Required** | ✅ Works immediately | ❌ Needs dataset/training |
-| **Path Analysis** | ✅ Attack chain visualization | ⚠️ Usually missing |
-| **Business Impact** | ✅ Real-world consequences | ❌ Technical only |
-| **Confidence Scoring** | ✅ 0-100% confidence | ❌ No confidence scoring |
-| **Speed** | ✅ < 1 second per file | ⚠️ Often slow |
-| **Reports** | ✅ JSON + Markdown | ⚠️ Limited formats |
+**It is:**
+- A pattern-based (regex + AST) scanner for Python, with basic support for JS/TS/Java/PHP/Ruby/Go file extensions.
+- A local, offline-first tool — no API keys, no external service calls, no training data.
+- A fix-suggestion generator: every finding carries a `suggestion` field with safe remediation guidance.
+- A lightweight triage tool that surfaces likely issues so a human can review them.
 
----
+**It is not:**
+- A full enterprise SAST platform. It will miss complex, context-dependent vulnerabilities and can produce false positives and false negatives.
+- An attack or exploitation tool. It does not generate payloads, exploit chains, or instructions for attacking systems.
+- A substitute for a security review or penetration test.
 
-## ✨ Features
-
-### Core Capabilities
-
-- ✅ **Pattern-based vulnerability detection** - Fast, reliable, deterministic
-- ✅ **Multi-file scanning** - Analyze entire directories
-- ✅ **Recursive scanning** - Scan subdirectories automatically
-- ✅ **Multiple output formats** - JSON for machines, Markdown for humans
-- ✅ **Severity classification** - Critical, High, Medium, Low
-- ✅ **Actionable suggestions** - Fix your code with clear guidance
-- ✅ **Attack path analysis** - See how attackers exploit vulnerabilities
-- ✅ **Business impact** - Understand the real-world consequences
-- ✅ **Confidence scoring** - Know how certain we are about each finding
-- ✅ **False positive analysis** - Confidence-based filtering
-
-### Security Coverage
-
-| Vulnerability Type | CWE ID | Severity | Detection Method |
-|-------------------|--------|----------|------------------|
-| SQL Injection | CWE-89 | Critical | Pattern Matching |
-| Command Injection | CWE-78 | Critical | Pattern Matching |
-| Hardcoded Credentials | CWE-798 | Critical | Pattern Matching |
-| Cross-Site Scripting (XSS) | CWE-79 | High | Pattern Matching |
-| Path Traversal | CWE-22 | High | Pattern Matching |
-
----
-
-## 🔧 How It Works
-
-VulnPath-AI uses **pattern-based detection** with intelligent analysis:
-┌─────────────────────────────────────────────────────────────────────┐
-│ 1. Read your source code file │
-└─────────────────────────────────────────────────────────────────────┘
-▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 2. Detect programming language from file extension │
-│ (.py → Python, .js → JavaScript, etc.) │
-└─────────────────────────────────────────────────────────────────────┘
-▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 3. Scan code against security patterns │
-│ • SQL Injection: "SELECT" + "+" + "input" │
-│ • XSS: "${" + "query" in template literals │
-│ • Hardcoded: "password" = "..." or "apiKey": "..." │
-└─────────────────────────────────────────────────────────────────────┘
-▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 4. Generate detailed report │
-│ • Summary with severity counts │
-│ • Each vulnerability with fix suggestion │
-│ • Attack path analysis │
-│ • Business impact assessment │
-│ • Confidence scoring │
-│ • JSON or Markdown format │
-└─────────────────────────────────────────────────────────────────────┘
-
-text
-
-
-## 🤖 GPT-5.6 Integration
-
-VulnPath-AI has two analysis modes:
-
-### Mode 1: Quick Scan (regex-based)
-`python analyze_hybrid.py file.py` — Fast pattern matching for immediate results
-
-### Mode 2: Deep AI Analysis (GPT-5.6)
-`python analyze_hybrid.py file.py --ai` — Generates a ready-to-use prompt for GPT-5.6
-
-Copy the output into ChatGPT or Codex with the SYSTEM_PROMPT.md configured, and GPT-5.6 will produce a detailed report with:
-- Attack paths specific to your code
-- CVSS v4 scoring
-- Business impact analysis
-- Secure code suggestions
-- Educational explanations
-
-**Built with:** Codex managed the repository, CLI tool, and workflow. GPT-5.6 Terra powers the deep security analysis when using Mode 2.
-
-### Why Pattern Matching?
-
-| Aspect | Benefit |
-|--------|---------|
-| ⚡ **Speed** | < 1 second per file |
-| 🎯 **Accuracy** | Verified detection across 3 vulnerability classes |
-| 📦 **No Training** | Works immediately, no dataset needed |
-| 🔒 **Deterministic** | Same results every time |
-| 🌍 **Universal** | Works on ANY codebase |
+Treat every finding as a lead to verify, not a confirmed vulnerability.
 
 ---
 
 ## 🚀 Quick Start
 
-### Installation
-
-VulnPath-AI requires **no installation**! Just clone and run:
+### Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/zenithVeil/vulnpath-ai.git
+# From source (editable install)
+git clone <repo>
 cd vulnpath-ai
+pip install -e .
 
-# That's it! You're ready to go.
-First Scan
-bash
-# Analyze a single file
+# Or run directly without installing
+python analyze_hybrid.py <target>
+```
+
+### Scan a single file
+
+```bash
 python analyze_hybrid.py samples/sqli_example.py
-Expected output:
+```
 
-text
-Analyzing: samples/sqli_example.py
-# 🛡️ VulnPath-AI Security Analysis Report
+### Scan a directory (recursive)
 
-## 📋 Summary
-- **File:** sqli_example.py
-- **Total Vulnerabilities:** 1
-- **Critical:** 1
+```bash
+python analyze_hybrid.py . --dir
+```
 
-### 1. SQL Injection
-- **CWE:** CWE-89
-- **Severity:** Critical (Priority Score: 9.4/10)
-- **Confidence:** 75.0%
-- **Description:** SQL Injection: User input concatenated into SQL query
-- **Fix:** Use parameterized queries
-📚 Usage Examples
-1. Analyze a Single File
-bash
-python analyze_hybrid.py path/to/your/file.py
-Output: Report printed to terminal + Markdown file saved
+---
 
-2. Analyze All Files in a Directory
-bash
-python analyze_hybrid.py samples/ --dir
-Output:
+## 💡 Usage Examples
 
-Scans all supported files in the directory
+**Scan one file, Markdown report (default):**
 
-Shows summary for each file
+```bash
+python analyze_hybrid.py samples/sqli_example.py
+```
 
-Total vulnerabilities count
+**Scan a directory:**
 
-3. Recursive Directory Scan
-bash
-python analyze_hybrid.py project/ --dir --recursive
-Output: Scans all files in subdirectories
+```bash
+python analyze_hybrid.py . --dir
+```
 
-4. Generate JSON Report
-bash
-python analyze_hybrid.py samples/ --dir --format json --output results.json
-Output: results.json - Machine-readable format for CI/CD integration
+**JSON output (machine-readable):**
 
-5. Generate Markdown Report
-bash
-python analyze_hybrid.py samples/ --dir --format markdown --output security_report.md
-Output: security_report.md - Human-readable report
+```bash
+python analyze_hybrid.py samples/sqli_example.py --format json --output report.json
+```
 
-6. Custom File Types
-bash
-# Analyze JavaScript files only
-python analyze_hybrid.py samples/ --dir
+**SARIF output (CI/CD / tool integration):**
 
-# The tool automatically detects file types
-🌍 Supported Languages
-Language	File Extensions	Status
-Python	.py	✅ Fully Supported
-JavaScript	.js, .ts, .jsx	✅ Fully Supported
-Java	.java	✅ Basic Support
-C/C++	.c, .cpp	✅ Basic Support
-PHP	.php	✅ Basic Support
-Ruby	.rb	✅ Basic Support
-Go	.go	✅ Basic Support
-HTML	.html	✅ Basic Support
-📊 Understanding Reports
-Markdown Report Example
-markdown
-# 🛡️ VulnPath-AI Security Analysis Report
+```bash
+python analyze_hybrid.py samples/sqli_example.py --format sarif --output report.sarif
+```
 
-## 📋 Summary
-- **File:** sqli_example.py
-- **Language:** python
-- **Analysis Date:** 2026-07-21 01:00:00
-- **Total Vulnerabilities:** 1
-- **Critical:** 1
-- **High:** 0
-- **Medium:** 0
-- **Low:** 0
+**Optional `--ai` mode (pasteable prompt for any LLM):**
 
-## 🛡️ Security Score: 8.5/10
+`--ai` prints a ready-to-use prompt that you paste into any LLM (model-agnostic). It includes the target code plus SYSTEM_PROMPT.md guidance so the LLM can produce its own security report.
 
-## 📊 Performance Metrics
-- **Average Confidence:** 75.0%
-- **False Positive Rate:** 25.0%
-- **Scan Time:** < 1 second
+```bash
+python analyze_hybrid.py samples/sqli_example.py --ai
+```
 
-## 🔍 Detailed Findings
+**Interactive `--ai` mode (step-by-step prompts):**
 
-### 1. SQL Injection
-- **CWE:** CWE-89
-- **Severity:** Critical (Priority Score: 9.4/10)
-- **Confidence:** 75.0%
-- **Exploitability:** Medium
-- **Description:** SQL Injection: User input concatenated into SQL query
-- **Fix Suggestion:** Use parameterized queries: cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
+```bash
+python analyze_hybrid.py samples/sqli_example.py --ai --interactive
+```
 
-#### 💥 Example Attack
-SELECT * FROM users WHERE id='1' OR '1'='1'
+---
 
-text
+## 🎯 Supported Focus: Python AI/agent App Risks
 
-#### 💰 Business Impact
-Full database compromise, data theft, data modification
+The scanner targets the weaknesses most relevant to AI/agent application code, plus common Python issues:
 
-#### 🔗 Attack Path Analysis
-- **Source:** User Input → HTTP Request Parameter
-- **Sink:** Database Query Execution
-- **Attack Chain:** Input → Query Construction → Database Execution → Data Exposure
-- **Remediation:** Use parameterized queries to break the attack path
-🔍 Common Vulnerability Types
-1. SQL Injection (CWE-89) - Critical
-What it is: Attackers can manipulate SQL queries to access unauthorized data.
+| Risk | What it catches | Example fix |
+|------|----------------|-------------|
+| Hardcoded credentials | Passwords, API keys, secrets written in code | Load from env vars or a secrets manager |
+| Command injection | User input reaching `os.system`, `subprocess.run(shell=True)`, `exec`/`eval` | Use argument lists; avoid `shell=True` |
+| Unsafe eval/exec | `eval()`/`exec()` with non-literal input | Use `ast.literal_eval` only for trusted data |
+| Unsafe deserialization | `pickle.loads`/`pickle.load` on untrusted data | Use JSON or another safe format |
+| Path traversal | File paths built from untrusted input | Resolve and confine to a base directory |
+| SQL injection | User input concatenated into SQL queries | Parameterized queries |
+| Weak cryptography | MD5, SHA-1, DES, RC4 | SHA-256+, bcrypt/Argon2 for passwords |
 
-Detection Pattern in Your Code:
+This is a focused set of rules, not exhaustive coverage. See the "what it is not" section above.
 
-python
-# VULNERABLE - Your tool will flag this
-query = "SELECT * FROM users WHERE id=" + user_input
-cursor.execute(query)
-The Fix:
+---
 
-python
-# SAFE - Your tool will suggest this
-cursor.execute("SELECT * FROM users WHERE id=?", (user_input,))
-Business Impact: Full database compromise, data theft
+## 📊 Reports: Markdown, JSON, SARIF
 
-2. Hardcoded Credentials (CWE-798) - Critical
-What it is: Passwords and API keys stored directly in code.
+VulnPath-AI emits three report formats:
 
-Detection Pattern in Your Code:
+- **Markdown** (default) — human-readable summary with findings, fix suggestions, and path context.
+- **JSON** (`--format json`) — machine-readable findings with fields `cwe_id`, `severity`, `confidence`, `line`, `suggestion`, `impact`.
+- **SARIF** (`--format sarif`) — standard format for CI/CD and security tool ingestion.
 
-javascript
-// VULNERABLE - Your tool will flag this
-const password = "admin123";
-const apiKey = "sk-1234567890";
-The Fix:
+Use `--output <file>` to write to a file; otherwise the report prints to stdout.
 
-javascript
-// SAFE - Your tool will suggest this
-const password = process.env.DB_PASSWORD;
-const apiKey = process.env.API_KEY;
-Business Impact: Unauthorized access, data breach
+---
 
-3. Cross-Site Scripting (CWE-79) - High
-What it is: Attackers can inject malicious scripts into web pages.
+## ⚠️ Safety: Fix Suggestions Only
 
-Detection Pattern in Your Code:
+VulnPath-AI **does not** generate attack payloads, exploit chains, or instructions for compromising systems. Every finding includes a `suggestion` field with safe remediation guidance only. Do not use this tool to attack systems you do not own or have written permission to test.
 
-javascript
-// VULNERABLE - Your tool will flag this
-res.send(`<h1>Search: ${req.query.q}</h1>`);
-The Fix:
+---
 
-javascript
-// SAFE - Your tool will suggest this
-res.send(`<h1>Search: ${escape(req.query.q)}</h1>`);
-Business Impact: Session hijacking, defacement, phishing
+## 🧪 Testing & Validation
 
-4. Command Injection (CWE-78) - Critical
-What it is: Attackers can execute arbitrary commands on the system.
+Run the benchmark suite against `samples/vulnerable/` and `samples/safe/`:
 
-Detection Pattern in Your Code:
-
-python
-# VULNERABLE - Your tool will flag this
-os.system("rm -rf " + user_input)
-The Fix:
-
-python
-# SAFE - Your tool will suggest this
-subprocess.run(["rm", "-rf", user_input])
-Business Impact: Remote code execution, system compromise
-
-5. Path Traversal (CWE-22) - High
-What it is: Attackers can access files outside the intended directory.
-
-Detection Pattern in Your Code:
-
-python
-# VULNERABLE - Your tool will flag this
-with open("/var/www/" + user_input, "r") as f:
-The Fix:
-
-python
-# SAFE - Your tool will suggest this
-base_dir = "/var/www/"
-safe_path = os.path.abspath(os.path.join(base_dir, user_input))
-if safe_path.startswith(base_dir):
-    with open(safe_path, "r") as f:
-Business Impact: Unauthorized file access, data disclosure
-
-🏗️ Architecture
-text
-┌─────────────────────────────────────────────────────────────────────┐
-│                        VulnPath-AI System                         │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐        │
-│  │   Input       │  │   Pattern     │  │   Confidence  │        │
-│  │   Scanner     │→ │   Matcher     │→ │   Scorer      │        │
-│  │  (Files/Dirs) │  │  (CWE-based)  │  │  (0-100%)     │        │
-│  └───────────────┘  └───────────────┘  └───────────────┘        │
-│         │                  │                  │                   │
-│         ▼                  ▼                  ▼                   │
-│  ┌───────────────────────────────────────────────────────────────┐│
-│  │                    Path Analyzer                             ││
-│  │  • Source Identification                                    ││
-│  │  • Sink Analysis                                            ││
-│  │  • Attack Chain Generation                                  ││
-│  └───────────────────────────────────────────────────────────────┘│
-│                              │                                    │
-│                              ▼                                    │
-│  ┌───────────────────────────────────────────────────────────────┐│
-│  │                    Report Generator                          ││
-│  │  • Vulnerability Summary                                     ││
-│  │  • Prioritization (Critical → Low)                          ││
-│  │  • False Positive Analysis                                   ││
-│  │  • JSON / Markdown Output                                    ││
-│  └───────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────────┘
-Components
-Component	Function
-Input Scanner	Reads files and directories
-Pattern Matcher	Detects vulnerability patterns using regex
-Confidence Scorer	Calculates confidence in each finding
-Path Analyzer	Generates attack paths for vulnerabilities
-Prioritizer	Ranks vulnerabilities by severity
-Report Generator	Creates JSON and Markdown reports
-🧪 Testing & Validation
-Benchmark Results
-Your tool has been tested with verified detection across 3 vulnerability classes:
-
-text
-📊 Performance Metrics:
-   ✅ Precision:      100.0%
-   ✅ Recall:         100.0%
-   ✅ F1 Score:       100.0%
-   ✅ Accuracy:       100.0%
-
-🎯 Grade: 🌟 Excellent!
-Test Cases
-Test File	Vulnerability	Status
-sqli_example.py	SQL Injection	✅ PASS
-hardcoded_secrets.js	Hardcoded Credentials	✅ PASS
-xss_example.js	Cross-Site Scripting	✅ PASS
-Run Your Own Tests
-bash
+```bash
 python test_benchmark.py
-💼 Real-World Usage
-Who Can Use VulnPath-AI?
-User	How They Benefit
-Developers	Find vulnerabilities before attackers do
-Security Teams	Quick security assessments
-DevOps Engineers	Integrate into CI/CD pipelines
-Students	Learn about security vulnerabilities
-Open Source Projects	Improve code security
-Use Cases
-Code Review: Scan your code before merging PRs
+```
 
-Security Audits: Quick vulnerability assessment
+Results are saved to `test_results.json`.
 
-CI/CD Integration: Automated security scanning
+---
 
-Learning: Understand common vulnerabilities
+## 🤝 Contributing
 
-Compliance: Security compliance checks
+We welcome small, focused contributions:
 
-Integration Examples
-GitHub Actions:
+- Add new detection patterns to `analyze_hybrid.py` (keep the `cwe_id`, `severity`, `confidence`, `line`, `suggestion`, `impact` finding fields).
+- Improve samples under `samples/vulnerable/` and `samples/safe/`.
+- Fix documentation typos or gaps.
 
-yaml
-name: Security Scan
-on: [push]
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run VulnPath-AI
-        run: |
-          python analyze_hybrid.py . --dir --format markdown --output security_report.md
-      - name: Upload Report
-        uses: actions/upload-artifact@v2
-        with:
-          name: security-report
-          path: security_report.md
-🚀 How to Use This Project
-For Developers
-Scan your code before committing:
+Please keep the stdlib-only constraint and avoid adding heavy dependencies.
 
-bash
-python analyze_hybrid.py ./ --dir --recursive
-Add to your CI/CD pipeline:
+---
 
-Run automatic security scans
+## 📝 License
 
-Generate reports for your team
+This project is licensed under the MIT License — see the LICENSE file for details.
 
-Learn about vulnerabilities:
+---
 
-See real examples
-
-Understand how to fix them
-
-For Security Teams
-Quick assessments:
-
-Scan new codebases
-
-Identify high-priority issues
-
-Report generation:
-
-Professional reports for stakeholders
-
-Business impact analysis
-
-For Students
-Learn security concepts:
-
-See real vulnerability examples
-
-Understand attack paths
-
-Practice fixes:
-
-Apply suggested fixes
-
-Re-scan to verify
-
-🤝 Contributing
-We welcome contributions! Here's how you can help:
-
-1. Add New Vulnerability Patterns
-python
-# Add to analyze_hybrid.py
-'vulnerability_name': {
-    'cwe': 'CWE-XXX',
-    'severity': 'Critical',
-    'patterns': [
-        r"pattern_here"
-    ],
-    'description': 'Description of vulnerability',
-    'fix': 'How to fix it',
-    'example_attack': 'Example exploit',
-    'impact': 'Business impact'
-}
-2. Support More Languages
-python
-# Add to language map
-lang_map = {
-    '.rs': 'rust',        # Add Rust support
-    '.go': 'golang',      # Add Go support
-    '.rb': 'ruby',        # Add Ruby support
-}
-3. Improve Documentation
-Fix typos
-
-Add more examples
-
-Clarify instructions
-
-📝 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-🙏 Acknowledgments
-OpenAI Build Week 2026 - For inspiring this project
-
-OWASP - For the vulnerability standards
-
-CWE - For the vulnerability classification
-
-All Contributors - For making this project better
-
-📞 Support
-Documentation: GitHub Pages
-
-Issues: GitHub Issues
-
-Email: [Your Email Here]
-
-⭐ Star Us!
-If you find VulnPath-AI useful, please give us a star on GitHub!
-
-https://img.shields.io/github/stars/zenithVeil/vulnpath-ai?style=social
-
-Made with ❤️ for the OpenAI Build Week 2026
+**Actively maintained.** MIT License.
