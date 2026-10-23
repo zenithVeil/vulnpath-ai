@@ -181,14 +181,17 @@ class VulnPathAI:
             }
         }
 
+# Convert a regex match span to (start_line, end_line).
     def _line_span_for_match(self, code, match):
         line = code.count('\n', 0, match.start()) + 1
         end_line = line + code[match.start():match.end()].count('\n')
         return line, end_line
 
+# Return inclusive line numbers for a (start, end) span.
     def _lines_for_span(self, line, end_line):
         return list(range(line, end_line + 1))
 
+# Build a source snippet around a finding, with optional context lines.
     def _build_snippet(self, code_lines, line, end_line, context=0):
         if context <= 0:
             return ""
@@ -200,6 +203,7 @@ class VulnPathAI:
             for line_no in range(start, end + 1)
         ).rstrip("\n")
 
+# True when a call's arguments look parameterized (tuple/list/dict).
     def _has_safe_parameterized_argument(self, call_text):
         try:
             parsed = ast.parse(call_text.strip(), mode='eval')
@@ -216,6 +220,7 @@ class VulnPathAI:
 
         return isinstance(node.args[1], (ast.Tuple, ast.List, ast.Dict))
 
+# Extract the full call expression text starting at an open paren.
     def _find_call_text(self, code, start_pos):
         open_pos = code.find('(', start_pos)
         if open_pos == -1:
@@ -394,6 +399,7 @@ class VulnPathAI:
 
         return list(findings.values())
 
+# Merge regex and AST findings by line; regex wins on conflict.
     def _merge_findings(self, regex_findings, ast_findings):
         merged = {finding['line']: finding for finding in regex_findings}
         for finding in ast_findings:
@@ -401,6 +407,7 @@ class VulnPathAI:
                 merged[finding['line']] = finding
         return list(merged.values())
 
+# Return the source/sink/flow/remediation template for a vuln type.
     def _path_template_for_type(self, vuln_type):
         vuln_type = (vuln_type or '').lower()
         if 'sql' in vuln_type:
@@ -461,6 +468,7 @@ class VulnPathAI:
             }
         return None
 
+# Resolve the dotted qualname of an AST call/function node.
     def _qualname(self, node):
         parts = []
         current = node
@@ -475,6 +483,7 @@ class VulnPathAI:
             return '.'.join([base] + list(reversed(parts))) if base else ''
         return '.'.join(reversed(parts)) if parts else ''
 
+# Return the first string argument of a call, or None.
     def _call_first_string_arg(self, call_node):
         if not isinstance(call_node, ast.Call) or not call_node.args:
             return None
@@ -483,6 +492,7 @@ class VulnPathAI:
             return arg.value
         return None
 
+# True when a qualname looks like a web-request source (Flask/Django).
     def _is_request_source_name(self, qualname):
         prefixes = (
             'request.args', 'request.form', 'request.values', 'request.json',
@@ -604,6 +614,7 @@ class VulnPathAI:
                         best = node
         return best
 
+# True when a call qualname is a sink for the given vulnerability type.
     def _sink_kind(self, qualname, vuln_type):
         vuln_type = (vuln_type or '').lower()
         attr = qualname.split('.')[-1] if qualname else ''
@@ -630,6 +641,7 @@ class VulnPathAI:
             return False
         return attr in sql_sinks | cmd_sinks | path_sinks | eval_sinks | crypto_sinks
 
+# Render a sink call as 'qualname() at line N'.
     def _format_sink_call(self, call_node):
         qualname = self._qualname(call_node.func) or self._call_name(call_node.func) or 'call'
         line = getattr(call_node, 'lineno', None)
@@ -638,6 +650,7 @@ class VulnPathAI:
             display = '%s at line %s' % (display, line)
         return display
 
+# Collect AST nodes whose span overlaps a line range.
     def _nodes_on_lines(self, tree, start_line, end_line):
         found = []
         for node in ast.walk(tree):
@@ -650,6 +663,7 @@ class VulnPathAI:
             found.append(node)
         return found
 
+# Derive source/sink/attack-chain for one finding from the AST.
     def _python_path_for_finding(self, tree, module_taint, vuln):
         vuln_type = vuln.get('vulnerability_type', '').lower()
         start_line = int(vuln.get('line') or 1)
@@ -724,6 +738,7 @@ class VulnPathAI:
 
         return None, None, None
 
+# Build per-finding attack-path objects from templates plus AST.
     def analyze_paths(self, code, language, vulnerabilities):
         paths = []
         python_tree = None
@@ -757,6 +772,7 @@ class VulnPathAI:
             paths.append(path)
         return paths
 
+# Score findings by severity+confidence and return them sorted.
     def prioritize_vulnerabilities(self, vulnerabilities):
         severity_order = {'Critical': 9, 'High': 7, 'Medium': 5, 'Low': 3}
         for v in vulnerabilities:
@@ -767,6 +783,7 @@ class VulnPathAI:
             v['exploitability'] = 'High' if v['confidence'] > 0.85 else 'Medium'
         return sorted(vulnerabilities, key=lambda x: x['priority_score'], reverse=True)
 
+# Run regex (+ AST for Python) detection on a single file.
     def analyze_file(self, file_path, context=0, max_file_size_kb=500, benchmark=False):
         start_time = time.perf_counter()
         print(f"Analyzing: {file_path}")
@@ -907,6 +924,7 @@ class VulnPathAI:
             pass
         return results
 
+# Map a severity label to a SARIF level.
     def _sarif_level_for_severity(self, severity):
         severity_levels = {
             'Critical': 'error',
@@ -1137,6 +1155,7 @@ class VulnPathAI:
         return "\n".join(report_lines)
 
 
+# Print the AI deep-analysis prompt (system prompt + target code).
 def build_ai_prompt(target_path, interactive=False):
     script_dir = Path(__file__).resolve().parent
     system_prompt_path = script_dir / "SYSTEM_PROMPT.md"
