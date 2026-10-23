@@ -77,6 +77,7 @@ class VulnVisitor(ast.NodeVisitor):
     def __init__(self):
         self.findings = []
 
+    # Record a finding dict using CWE/severity/fix/impact from VULN_META.
     def _add(self, node, vuln_type, confidence=0.9):
         meta = VULN_META[vuln_type]
         line = getattr(node, "lineno", 0)
@@ -103,6 +104,7 @@ class VulnVisitor(ast.NodeVisitor):
                 return True
         return False
 
+    # True when a node is a plain string literal (safe, not dynamic input).
     @staticmethod
     def _is_string_literal(node):
         return isinstance(node, ast.Constant) and isinstance(node.value, str)

@@ -1,11 +1,11 @@
 {
-  "test_date": "2026-10-12 22:06:12",
+  "test_date": "2026-10-23 11:47:42",
   "results": {
     "true_positives": 11,
     "false_positives": 0,
     "true_negatives": 8,
     "false_negatives": 0,
-    "total_time": 0.038167476654052734,
+    "total_time": 0.018053770065307617,
     "test_count": 19,
     "confidence_threshold": 0.7,
     "precision": 1.0,
@@ -27,7 +27,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.009562969207763672
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/command_subprocess_shell.py",
@@ -111,7 +111,7 @@
         "Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.015030860900878906
     },
     {
       "file": "samples/vulnerable/sqli_string_concat.py",
@@ -124,7 +124,7 @@
         "Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.012930870056152344
+      "time_seconds": 0.0007958412170410156
     },
     {
       "file": "samples/vulnerable/vulnerable_sample.py",
@@ -142,7 +142,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.004465818405151367
+      "time_seconds": 0.0022270679473876953
     },
     {
       "file": "samples/vulnerable/xss_innerhtml.js",
@@ -236,7 +236,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.011207818984985352
+      "time_seconds": 0.0
     },
     {
       "file": "samples/safe/safe_subprocess.py",

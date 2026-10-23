@@ -245,6 +245,8 @@ class VulnPathAI:
                     return code[prefix_start:idx + 1]
         return ""
 
+    # Skip SQL-injection hits when the execute call already uses parameterized args.
+    # Skip SQL-injection hits when the execute call already uses parameterized args.
     def _is_safe_parameterized_execute(self, code, match):
         for execute_match in re.finditer(r"(?:cursor\.)?(?:execute|executemany)\s*\(", code, re.IGNORECASE):
             if execute_match.start() > match.start():
@@ -254,6 +256,7 @@ class VulnPathAI:
                 return self._has_safe_parameterized_argument(call_text)
         return False
 
+    # Skip path-traversal hits when a sanitization guard appears nearby.
     def _has_nearby_path_traversal_guard(self, code_lines, line_number):
         guard_patterns = (
             r"os\.path\.basename\s*\(",
@@ -274,6 +277,7 @@ class VulnPathAI:
         preceding_context = ''.join(code_lines[start - 1:line_number - 1])
         return any(re.search(pattern, preceding_context, re.IGNORECASE) for pattern in guard_patterns)
 
+    # Build a finding dict with all required fields from pattern info.
     def _make_finding(self, vuln_info, vuln_type, line, end_line, lines, confidence, snippet=""):
         return {
             'cwe_id': vuln_info['cwe'],
