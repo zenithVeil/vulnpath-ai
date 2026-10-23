@@ -42,7 +42,7 @@ class BenchmarkTester:
         for expected, directory in (("vulnerable", VULNERABLE_DIR), ("safe", SAFE_DIR)):
             if not directory.is_dir():
                 continue
-            for path in sorted(directory.iterdir()):
+            for path in sorted(directory.rglob("*")):
                 if path.is_file() and path.suffix.lower() in SOURCE_EXTENSIONS:
                     cases.append({
                         "file": str(path).replace("\\", "/"),
