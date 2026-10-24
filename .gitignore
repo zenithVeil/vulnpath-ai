@@ -33,3 +33,10 @@ model_training.py
 uploads/
 
 results.sarif
+report.json
+results.json
+
+__pycache__/
+*.pyc
+results.sarif
+report.json

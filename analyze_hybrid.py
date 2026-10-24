@@ -908,7 +908,7 @@ class VulnPathAI:
         def _norm_key(f):
             return (
                 f.get('line'),
-                str(f.get('vulnerability_type', '')).lower().replace('_', ' ').strip()
+                str(f.get('cwe_id', '')).upper().strip()
             )
 
         combined = list(results.get('vulnerabilities', []))
@@ -1371,6 +1371,14 @@ def main():
 
     args = parser.parse_args()
     backup = args.backup if args.backup is not None else args.apply_fix
+
+    # Terminal banner (Nuclei-style, text only)
+    print("============================================================")
+    print("  VulnPath-AI  v1.1.0")
+    print("  Offline scanner for AI/agent app code")
+    print("  Detect • Path context • Fix suggestions only")
+    print("============================================================")
+
     if args.ai or args.interactive:
         if os.path.isdir(args.path):
             parser.error('--ai/--interactive mode requires a single target code file')

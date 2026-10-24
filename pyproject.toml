@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vulnpath-ai"
-version = "1.0.0"
+version = "1.1.0"
 description = "Offline-first Python hybrid scanner for AI/agent app code: detection + path context + fix suggestions only."
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [{name = "VulnPath-AI"}]
 keywords = ["security", "sast", "scanner", "ai-agent"]
@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 [tool.setuptools]
-py-modules = ["analyze_hybrid"]
+py-modules = ["analyze_hybrid", "ast_analyzer"]
 
 [project.scripts]
 vulnpath-ai = "analyze_hybrid:main"

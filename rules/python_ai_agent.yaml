@@ -15,7 +15,7 @@
   cwe: CWE-798
   severity: Critical
   patterns:
-  - (?<!\w)(password|api_key|secret|token)\s*[:=]\s*["\'][^"\']+["\']
+  - ^\s*(?:\w+_)?(password|api_key|secret|token)\s*[:=]\s*[\"'][^\"']+[\"']
   suggestion: Load secrets from environment variables or a secrets manager.
   impact: Unauthorized access, data breach, account takeover
 - id: yaml_eval_exec

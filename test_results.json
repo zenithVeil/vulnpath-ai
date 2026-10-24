@@ -1,11 +1,11 @@
 {
-  "test_date": "2026-10-24 19:18:39",
+  "test_date": "2026-10-24 20:01:26",
   "results": {
     "true_positives": 16,
     "false_positives": 0,
     "true_negatives": 13,
     "false_negatives": 0,
-    "total_time": 0.06313323974609375,
+    "total_time": 0.06468963623046875,
     "test_count": 29,
     "confidence_threshold": 0.7,
     "precision": 1.0,
@@ -19,10 +19,9 @@
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 3,
+      "significant_findings": 2,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Command Injection",
         "Command Injection",
         "Yaml Unsafe Subprocess"
       ],
@@ -34,10 +33,9 @@
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 2,
+      "significant_findings": 1,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Use of eval/exec",
         "Yaml Eval Exec"
       ],
       "low_confidence": [],
@@ -48,16 +46,15 @@
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 4,
+      "significant_findings": 3,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Hardcoded Credentials",
         "Hardcoded Credentials",
         "Hardcoded Credentials",
         "Yaml Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0017120838165283203
+      "time_seconds": 0.010326862335205078
     },
     {
       "file": "samples/vulnerable/agent/agent_ssrf_fetch.py",
@@ -70,17 +67,16 @@
         "Yaml Ssrf"
       ],
       "low_confidence": [],
-      "time_seconds": 0.006943941116333008
+      "time_seconds": 0.006380558013916016
     },
     {
       "file": "samples/vulnerable/agent/agent_unsafe_pickle.py",
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 2,
+      "significant_findings": 1,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Insecure Deserialization",
         "Yaml Unsafe Pickle"
       ],
       "low_confidence": [],
@@ -91,32 +87,30 @@
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 4,
+      "significant_findings": 3,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Command Injection",
         "Command Injection",
         "Yaml Unsafe Subprocess",
         "Yaml Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0043790340423583984
     },
     {
       "file": "samples/vulnerable/command_subprocess_shell.py",
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 4,
+      "significant_findings": 3,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Command Injection",
         "Command Injection",
         "Yaml Unsafe Subprocess",
         "Yaml Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.002008199691772461
     },
     {
       "file": "samples/vulnerable/hardcoded_api_keys.js",
@@ -129,24 +123,23 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0020084381103515625
     },
     {
       "file": "samples/vulnerable/hardcoded_password.py",
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 5,
+      "significant_findings": 4,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Hardcoded Credentials",
         "Hardcoded Credentials",
         "Hardcoded Credentials",
         "Hardcoded Credentials",
         "Yaml Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.014322280883789062
+      "time_seconds": 0.0018122196197509766
     },
     {
       "file": "samples/vulnerable/path_fstring_open.py",
@@ -159,7 +152,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0016202926635742188
+      "time_seconds": 0.0020072460174560547
     },
     {
       "file": "samples/vulnerable/path_open_concat.py",
@@ -167,13 +160,11 @@
       "outcome": "true_positive",
       "passed": true,
       "significant_findings": 1,
-      "low_confidence_findings": 1,
+      "low_confidence_findings": 0,
       "vulnerabilities": [
         "Yaml Path Traversal"
       ],
-      "low_confidence": [
-        "Path Traversal"
-      ],
+      "low_confidence": [],
       "time_seconds": 0.0
     },
     {
@@ -181,42 +172,37 @@
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 3,
+      "significant_findings": 2,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "SQL Injection",
         "Yaml Sql Injection",
         "Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.005032539367675781
+      "time_seconds": 0.003984928131103516
     },
     {
       "file": "samples/vulnerable/sqli_string_concat.py",
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 2,
+      "significant_findings": 1,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "SQL Injection",
         "Yaml Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.004327535629272461
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/vulnerable_sample.py",
       "expected": "vulnerable",
       "outcome": "true_positive",
       "passed": true,
-      "significant_findings": 7,
+      "significant_findings": 4,
       "low_confidence_findings": 1,
       "vulnerabilities": [
         "Hardcoded Credentials",
-        "Hardcoded Credentials",
-        "SQL Injection",
-        "Command Injection",
         "Yaml Sql Injection",
         "Yaml Hardcoded Credentials",
         "Yaml Unsafe Subprocess"
@@ -224,7 +210,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.007208824157714844
+      "time_seconds": 0.006837368011474609
     },
     {
       "file": "samples/vulnerable/xss_innerhtml.js",
@@ -237,7 +223,7 @@
         "Xss"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.002007722854614258
     },
     {
       "file": "samples/vulnerable/xss_python_return.py",
@@ -250,7 +236,7 @@
         "Xss"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0013780593872070312
+      "time_seconds": 0.0
     },
     {
       "file": "samples/safe/agent/agent_env_secrets.py",
@@ -261,7 +247,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0005807876586914062
+      "time_seconds": 0.0020096302032470703
     },
     {
       "file": "samples/safe/agent/agent_no_eval.py",
@@ -283,7 +269,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0020084381103515625
     },
     {
       "file": "samples/safe/agent/agent_safe_subprocess.py",
@@ -305,7 +291,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.005867719650268555
+      "time_seconds": 0.004456996917724609
     },
     {
       "file": "samples/safe/env_based_secrets.js",
@@ -360,7 +346,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.00862574577331543
+      "time_seconds": 0.0
     },
     {
       "file": "samples/safe/safe_path_join.py",
@@ -373,7 +359,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.002008676528930664
+      "time_seconds": 0.0
     },
     {
       "file": "samples/safe/safe_subprocess.py",
@@ -395,7 +381,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0035047531127929688
+      "time_seconds": 0.014461994171142578
     }
   ],
   "grade": "Excellent"
