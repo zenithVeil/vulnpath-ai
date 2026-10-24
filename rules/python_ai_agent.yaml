@@ -3,100 +3,94 @@
   cwe: CWE-78
   severity: Critical
   patterns:
-    - "os\\.system\\(.*[\"\\'].*\\+"
-    - "subprocess\\.(call|Popen|run)\\(.*[\"\\'].*\\+"
-    - "subprocess\\.(call|Popen|run)\\(.*shell\\s*=\\s*True"
-    - "exec\\(.*[\"\\'].*\\+"
-    - "os\\.popen\\(.*[\"\\'].*\\+"
-  suggestion: "Use subprocess.run([args]) with a list and avoid shell=True."
-  impact: "Remote code execution, system compromise"
-
+  - os\.system\(.*["\'].*\+
+  - subprocess\.(call|Popen|run)\(.*["\'].*\+
+  - subprocess\.(call|Popen|run)\(.*shell\s*=\s*True
+  - exec\(.*["\'].*\+
+  - os\.popen\(.*["\'].*\+
+  suggestion: Use subprocess.run([args]) with a list and avoid shell=True.
+  impact: Remote code execution, system compromise
 - id: yaml_hardcoded_credentials
   name: Agent Hardcoded Credentials
   cwe: CWE-798
   severity: Critical
   patterns:
-    - "(?<!\\w)(password|api_key|secret|token)\\s*[:=]\\s*[\"\\'][^\"\\']+[\"\\']"
-  suggestion: "Load secrets from environment variables or a secrets manager."
-  impact: "Unauthorized access, data breach, account takeover"
-
+  - (?<!\w)(password|api_key|secret|token)\s*[:=]\s*["\'][^"\']+["\']
+  suggestion: Load secrets from environment variables or a secrets manager.
+  impact: Unauthorized access, data breach, account takeover
 - id: yaml_eval_exec
   name: Agent Eval or Exec
   cwe: CWE-95
   severity: High
   patterns:
-    - "\\beval\\s*\\("
-    - "\\bexec\\s*\\("
-  suggestion: "Avoid eval/exec; parse output with a safe parser instead."
-  impact: "Arbitrary code execution"
-
+  - \beval\s*\(
+  - \bexec\s*\(
+  suggestion: Avoid eval/exec; parse output with a safe parser instead.
+  impact: Arbitrary code execution
 - id: yaml_unsafe_pickle
   name: Agent Unsafe Pickle
   cwe: CWE-502
   severity: High
   patterns:
-    - "pickle\\.loads?\\s*\\("
-  suggestion: "Never unpickle untrusted data; use JSON or a safe format."
-  impact: "Remote code execution via crafted payloads"
-
+  - pickle\.loads?\s*\(
+  suggestion: Never unpickle untrusted data; use JSON or a safe format.
+  impact: Remote code execution via crafted payloads
 - id: yaml_path_traversal
   name: Agent Path Traversal
   cwe: CWE-22
   severity: High
   patterns:
-    - "open\\(.*[\"\\'].*\\+"
-    - "os\\.path\\.join\\(.*[\"\\'].*\\+"
-  suggestion: "Resolve the path and verify it stays inside an allowed base directory."
-  impact: "Unauthorized file access, data disclosure"
-
+  - open\(.*["\'].*\+
+  - os\.path\.join\(.*["\'].*\+
+  suggestion: Resolve the path and verify it stays inside an allowed base directory.
+  impact: Unauthorized file access, data disclosure
 - id: yaml_sql_injection
   name: Agent SQL Injection
   cwe: CWE-89
   severity: Critical
   patterns:
-    - "SELECT.*\\+.*input"
-    - "execute\\s*\\(.*\\+.*\\)"
-    - "cursor\\.execute\\s*\\(.*%.*\\)"
-    - "f[\"\\'].*SELECT.*\\{.*\\}"
-  suggestion: "Use parameterized queries."
-  impact: "Full database compromise, data theft, data modification"
-
+  - SELECT.*\+.*input
+  - execute\s*\(.*\+.*\)
+  - cursor\.execute\s*\(.*%.*\)
+  - f["\'].*SELECT.*\{.*\}
+  suggestion: Use parameterized queries.
+  impact: Full database compromise, data theft, data modification
 - id: yaml_unsafe_subprocess
   name: Agent Unsafe Subprocess
   cwe: CWE-78
   severity: Critical
   patterns:
-    - "subprocess\\.(call|Popen|run)\\(.*shell\\s*=\\s*True"
-    - "os\\.system\\("
-  suggestion: "Use subprocess.run([args]) with a list and no shell=True."
-  impact: "Remote code execution, system compromise"
-
+  - subprocess\.(call|Popen|run)\(.*shell\s*=\s*True
+  - os\.system\(
+  suggestion: Use subprocess.run([args]) with a list and no shell=True.
+  impact: Remote code execution, system compromise
 - id: yaml_ssrf
   name: Agent SSRF
   cwe: CWE-918
   severity: High
   patterns:
-    - "requests\\.(get|post|put|delete)\\s*\\(.*[\"\\'].*\\+"
-    - "urllib\\.request\\.urlopen\\s*\\(.*[\"\\'].*\\+"
-  suggestion: "Validate the URL against an allowlist of hosts before fetching."
-  impact: "Unauthorized access to internal services, data exposure"
-
+  - requests\.(get|post|put|delete)\s*\(.*["'].*\+
+  - requests\.(get|post|put|delete)\s*\([a-zA-Z_][\w]*\s*\)
+  - urllib\.request\.urlopen\s*\(.*["'].*\+
+  - urlopen\s*\([a-zA-Z_][\w]*\s*\)
+  - urllib\.request\.urlopen\s*\([a-zA-Z_][\w]*\s*\)
+  suggestion: Validate the URL against an allowlist of hosts before fetching.
+  impact: Unauthorized access to internal services, data exposure
 - id: yaml_weak_crypto
   name: Agent Weak Cryptography
   cwe: CWE-327
   severity: High
   patterns:
-    - "hashlib\\.(md5|sha1)\\s*\\("
-    - "\\b(md5|sha1|des|rc4)\\s*\\("
-  suggestion: "Use SHA-256+ for hashing and bcrypt/Argon2 for passwords."
-  impact: "Weakened security, easier brute-force attacks"
-
+  - hashlib\.(md5|sha1)\s*\(
+  - \b(md5|sha1|des|rc4)\s*\(
+  suggestion: Use SHA-256+ for hashing and bcrypt/Argon2 for passwords.
+  impact: Weakened security, easier brute-force attacks
 - id: yaml_unsafe_yaml_load
   name: Agent Unsafe YAML Load
   cwe: CWE-502
   severity: High
   patterns:
-    - "yaml\\.load\\s*\\("
-    - "yaml\\.unsafe_load\\s*\\("
-  suggestion: "Use yaml.safe_load() instead of yaml.load()."
-  impact: "Arbitrary code execution via crafted YAML"
+  - yaml\.load\s*\(
+  - yaml\.unsafe_load\s*\(
+  suggestion: Use yaml.safe_load() instead of yaml.load().
+  impact: Arbitrary code execution via crafted YAML

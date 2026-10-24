@@ -1,5 +1,4 @@
 # Vulnerable: requests.get / urllib on user-controlled URL (SSRF)
-# NOTE: current engine has no SSRF rule; this sample documents a miss.
 import requests
 from urllib.request import urlopen
 
