@@ -1,11 +1,11 @@
 {
-  "test_date": "2026-10-25 08:10:17",
+  "test_date": "2026-10-25 09:31:55",
   "results": {
     "true_positives": 16,
     "false_positives": 0,
     "true_negatives": 13,
     "false_negatives": 0,
-    "total_time": 0.04545998573303223,
+    "total_time": 0.07168793678283691,
     "test_count": 29,
     "confidence_threshold": 0.7,
     "precision": 1.0,
@@ -26,7 +26,7 @@
         "Yaml Unsafe Subprocess"
       ],
       "low_confidence": [],
-      "time_seconds": 0.005990028381347656
+      "time_seconds": 0.004848003387451172
     },
     {
       "file": "samples/vulnerable/agent/agent_eval_tool.py",
@@ -39,7 +39,7 @@
         "Yaml Eval Exec"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0009911060333251953
+      "time_seconds": 0.0059735774993896484
     },
     {
       "file": "samples/vulnerable/agent/agent_secret_in_code.py",
@@ -51,10 +51,10 @@
       "vulnerabilities": [
         "Hardcoded Credentials",
         "Hardcoded Credentials",
-        "Yaml Hardcoded Credentials"
+        "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0009114742279052734
+      "time_seconds": 0.0024204254150390625
     },
     {
       "file": "samples/vulnerable/agent/agent_ssrf_fetch.py",
@@ -67,7 +67,7 @@
         "Yaml Ssrf"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0009953975677490234
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/agent/agent_unsafe_pickle.py",
@@ -80,7 +80,7 @@
         "Yaml Unsafe Pickle"
       ],
       "low_confidence": [],
-      "time_seconds": 0.002005338668823242
+      "time_seconds": 0.001142263412475586
     },
     {
       "file": "samples/vulnerable/command_os_popen.py",
@@ -95,7 +95,7 @@
         "Yaml Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0022094249725341797
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/command_subprocess_shell.py",
@@ -110,7 +110,7 @@
         "Yaml Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.007455587387084961
     },
     {
       "file": "samples/vulnerable/hardcoded_api_keys.js",
@@ -123,7 +123,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.003278493881225586
     },
     {
       "file": "samples/vulnerable/hardcoded_password.py",
@@ -175,11 +175,11 @@
       "significant_findings": 2,
       "low_confidence_findings": 0,
       "vulnerabilities": [
-        "Yaml Sql Injection",
+        "SQL Injection",
         "Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.010009050369262695
     },
     {
       "file": "samples/vulnerable/sqli_string_concat.py",
@@ -192,7 +192,7 @@
         "Yaml Sql Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.015285491943359375
+      "time_seconds": 0.0028600692749023438
     },
     {
       "file": "samples/vulnerable/vulnerable_sample.py",
@@ -210,7 +210,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.004031181335449219
+      "time_seconds": 0.008390188217163086
     },
     {
       "file": "samples/vulnerable/xss_innerhtml.js",
@@ -258,7 +258,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.003142118453979492
     },
     {
       "file": "samples/safe/agent/agent_safe_json.py",
@@ -291,7 +291,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.004811763763427734
     },
     {
       "file": "samples/safe/env_based_secrets.js",
@@ -313,7 +313,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.012264251708984375
+      "time_seconds": 0.005198478698730469
     },
     {
       "file": "samples/safe/escaped_html.js",
@@ -335,7 +335,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0007762908935546875
+      "time_seconds": 0.0
     },
     {
       "file": "samples/safe/parameterized_sql.py",
@@ -346,7 +346,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.006060361862182617
     },
     {
       "file": "samples/safe/safe_path_join.py",
@@ -370,7 +370,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.006097555160522461
     },
     {
       "file": "samples/safe/secure_sample.py",
