@@ -453,6 +453,157 @@ class VulnPathAI:
         vuln_type = (vuln_type or '').lower()
         if 'sql' in vuln_type:
             return {
+                'source': 'User Input HTTP Request Parameter',
+                'sink': 'Database Query Execution',
+                'flow': 'User input flows directly to SQL query without sanitization',
+                'remediation': 'Use parameterized queries to break the attack path',
+                'attack_chain': 'Input Query Construction Database Execution Data Exposure'
+            }
+        if 'hardcoded' in vuln_type:
+            return {
+                'source': 'Hardcoded value in source code',
+                'sink': 'Authentication API Call',
+                'flow': 'Credentials exposed in code Attacker can read them',
+                'remediation': 'Move credentials to environment variables',
+                'attack_chain': 'Code Access Credential Extraction Unauthorized Access'
+            }
+        if 'command' in vuln_type:
+            return {
+                'source': 'User Input Form URL Parameter',
+                'sink': 'System Command Execution',
+                'flow': 'User input passed to shell command without validation',
+                'remediation': 'Use subprocess with argument list avoid shell=True',
+                'attack_chain': 'Input Injection Shell Execution System Compromise'
+            }
+        if 'path' in vuln_type:
+            return {
+                'source': 'User Input File Path Parameter',
+                'sink': 'File System Operation',
+                'flow': 'User input used to construct file path without validation',
+                'remediation': 'Validate and sanitize input use allowlist',
+                'attack_chain': 'Path Injection Directory Traversal File Access'
+            }
+        if 'xss' in vuln_type:
+            return {
+                'source': 'User Input HTTP Request Parameter',
+                'sink': 'HTML Rendering',
+                'flow': 'User input rendered directly in HTML without sanitization',
+                'remediation': 'Escape HTML output or use CSP headers',
+                'attack_chain': 'Input Injection HTML Rendering Script Execution'
+            }
+        if 'eval' in vuln_type or 'deseriali' in vuln_type:
+            return {
+                'source': 'Untrusted input serialized payload',
+                'sink': 'eval exec or pickle.loads',
+                'flow': 'Untrusted data reaches a code-execution primitive without validation',
+                'remediation': 'Use ast.literal_eval or JSON never unpickle untrusted data',
+                'attack_chain': 'Payload Injection Code Execution System Compromise'
+            }
+        if 'crypto' in vuln_type:
+            return {
+                'source': 'Sensitive data passwords tokens files',
+                'sink': 'Weak hash encryption routine',
+                'flow': 'Sensitive data protected with a legacy or weak algorithm',
+                'remediation': 'Use bcrypt Argon2 for passwords and SHA-256 for integrity',
+                'attack_chain': 'Weak Algorithm Offline Brute Force Credential Compromise'
+            }
+        return None
+    # Check if two line ranges overlap or are within max_gap lines of each other.
+    # Uses the condition a1<=b2 AND b1<=a2 for overlap detection.
+    def _ranges_overlap_or_close(self, r1, r2, max_gap=2):
+        a1, a2 = r1
+        b1, b2 = r2
+        # Overlap: a1 <= b2 AND b1 <= a2
+        if a1 <= b2 and b1 <= a2:
+            return True
+        # Adjacent/gap: within max_gap lines of each other
+        if a2 + max_gap < b1 or b2 + max_gap < a1:
+            return False
+        return True
+
+    # Helper: build a (min_line, max_line) range for a finding.
+    # Uses 'lines' list if present, then falls back to line+end_line, then just line.
+    def _find_range(self, f):
+        lines = f.get('lines', [])
+        if lines:
+            return (min(int(l) for l in lines), max(int(l) for l in lines))
+        start = int(f.get('line', 0))
+        end = int(f.get('end_line', start))
+        return (start, end if end >= start else start)
+
+    # Deduplicate findings that report the same issue:
+    # same CWE (or vulnerability class) on the same or overlapping line.
+    # Keeps the finding with: better path analysis / more complete fields,
+    # then higher confidence, then built-in over YAML.
+    def _dedup_findings(self, findings):
+        if not findings:
+            return findings
+
+        # Group findings by CWE (case-insensitive)
+        by_cwe = {}
+        for f in findings:
+            cwe = str(f.get('cwe_id', '')).upper().strip()
+            by_cwe.setdefault(cwe, []).append(f)
+
+        deduped = []
+        for cwe, group in by_cwe.items():
+            if len(group) == 1:
+                deduped.append(group[0])
+                continue
+
+            # Build ranges for each finding and sort by start line
+            group_with_ranges = [(self._find_range(f), f) for f in group]
+            group_with_ranges.sort(key=lambda x: x[0][0])
+
+            # Cluster findings using proper range overlap detection
+            clusters = []
+            current_cluster = [group_with_ranges[0][1]]
+            current_range = group_with_ranges[0][0]
+            for r, f in group_with_ranges[1:]:
+                if self._ranges_overlap_or_close(current_range, r, max_gap=2):
+                    current_cluster.append(f)
+                    # Expand current range to include this finding's range
+                    current_range = (min(current_range[0], r[0]), max(current_range[1], r[1]))
+                else:
+                    clusters.append(current_cluster)
+                    current_cluster = [f]
+                    current_range = r
+            clusters.append(current_cluster)
+
+            for cluster in clusters:
+                if len(cluster) == 1:
+                    deduped.append(cluster[0])
+                else:
+                    deduped.append(self._pick_best_finding(cluster))
+
+        return deduped
+
+    # Pick the best finding from a cluster of duplicates.
+    def _pick_best_finding(self, cluster):
+        def score(f):
+            s = 0
+            # Prefer findings with more complete fields (path_analysis, snippet, end_line)
+            if f.get('path_analysis'):
+                s += 10
+            if f.get('snippet') and f.get('snippet') != '':
+                s += 5
+            if f.get('end_line') and f.get('end_line') != f.get('line'):
+                s += 3
+            # Higher confidence wins
+            s += int(f.get('confidence', 0) * 100)
+            # Prefer built-in over YAML (Yaml prefix in vulnerability_type)
+            vtype = str(f.get('vulnerability_type', ''))
+            if not vtype.lower().startswith('yaml'):
+                s += 50
+            # Richer description
+            if f.get('description') and len(f.get('description', '')) > 30:
+                s += 5
+            return s
+
+        return max(cluster, key=score)
+        vuln_type = (vuln_type or '').lower()
+        if 'sql' in vuln_type:
+            return {
                 'source': 'User Input → HTTP Request Parameter',
                 'sink': 'Database Query Execution',
                 'flow': 'User input flows directly to SQL query without sanitization',
@@ -852,6 +1003,8 @@ class VulnPathAI:
         if language == 'python':
             ast_findings = self.ast_sql_injection_detection(file_path, lines, context)
             vulnerabilities = self._merge_findings(vulnerabilities, ast_findings)
+        # Deduplicate overlapping findings (built-in + YAML, same CWE/overlapping lines)
+        vulnerabilities = self._dedup_findings(vulnerabilities)
         vulnerabilities = self.prioritize_vulnerabilities(vulnerabilities)
 
         severity_counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
