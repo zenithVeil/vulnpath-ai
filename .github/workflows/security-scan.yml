@@ -9,24 +9,27 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install VulnPath-AI (editable)
-        run: |
-          pip install -e .
+      - name: Install package
+        run: pip install -e .
 
-      - name: Run VulnPath-AI SARIF scan
+      - name: Run SARIF scan
         run: |
-          python analyze_hybrid.py . --dir --format sarif -o results.sarif || true
+          python analyze_hybrid.py samples --dir --recursive --format sarif -o results.sarif
 
-      - name: Upload SARIF to GitHub Code Scanning
+      - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
+        continue-on-error: true
