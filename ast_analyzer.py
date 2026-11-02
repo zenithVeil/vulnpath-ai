@@ -151,6 +151,17 @@ class VulnVisitor(ast.NodeVisitor):
             if any(kw.arg == "shell" and isinstance(kw.value, ast.Constant)
                    and kw.value.value is True for kw in node.keywords):
                 self._add(node, "command_injection", confidence=0.8)
+            # os.system() with constant string argument is not flagged;
+            # only flag when the command argument is not a constant (variable, string concatenation, f-string, .format())
+            if fname == 'system' and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == 'os':
+                if node.args and len(node.args) > 0:
+                    arg = node.args[0]
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                        # Constant string argument - should NOT be flagged
+                        pass
+                    else:
+                        # Non-constant argument - flag as command_injection
+                        self._add(node, "command_injection", confidence=0.9)
 
         # eval / exec
         if fname in DANGEROUS_EVAL:

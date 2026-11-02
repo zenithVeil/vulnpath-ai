@@ -1,0 +1,71 @@
+{
+  "file": "shell_test.py",
+  "file_path": "shell_test.py",
+  "language": "python",
+  "analysis_date": "2026-11-02 21:24:44",
+  "summary": {
+    "total_vulnerabilities": 2,
+    "critical": 2,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "vulnerabilities": [
+    {
+      "vulnerability_type": "Command Injection",
+      "cwe_id": "CWE-78",
+      "severity": "Critical",
+      "line": 9,
+      "lines": [
+        9
+      ],
+      "confidence": 0.9,
+      "description": "Command Injection: user input used in a system command",
+      "suggestion": "Use the argument-list form: subprocess.run([\"ls\", user_input])",
+      "impact": "Remote code execution, system compromise",
+      "end_line": 9,
+      "snippet": "",
+      "example_attack": "N/A",
+      "priority_score": 9.45,
+      "priority_level": "Critical",
+      "exploitability": "High"
+    },
+    {
+      "cwe_id": "CWE-78",
+      "severity": "Critical",
+      "description": "Agent Unsafe Subprocess",
+      "suggestion": "Use subprocess.run([args]) with a list and no shell=True.",
+      "vulnerability_type": "Yaml Unsafe Subprocess",
+      "confidence": 0.7999999999999999,
+      "line": 6,
+      "end_line": 6,
+      "lines": [
+        6,
+        9,
+        13
+      ],
+      "snippet": "",
+      "example_attack": "N/A",
+      "impact": "Remote code execution, system compromise",
+      "priority_score": 9.4,
+      "priority_level": "Critical",
+      "exploitability": "Medium"
+    }
+  ],
+  "path_analysis": [
+    {
+      "source": "function parameter user_input",
+      "sink": "subprocess.run() at line 9",
+      "flow": "function parameter user_input flows into subprocess.run() at line 9 without sanitization",
+      "remediation": "Use subprocess with argument list avoid shell=True",
+      "attack_chain": "function parameter user_input \u2192 user_input \u2192 subprocess.run() at line 9",
+      "vulnerability_type": "Command Injection"
+    }
+  ],
+  "metrics": {
+    "average_confidence": 0.85,
+    "false_positive_rate": 0.15000000000000002,
+    "security_score": 7.0,
+    "scan_time_seconds": 0.005734999998821877
+  }
+}

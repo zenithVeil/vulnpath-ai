@@ -91,9 +91,10 @@ class VulnPathAI:
                         r"os\.popen\(.*['\"].*\+",
                         r"`.*\+.*`"
                     ],
+                    'constant_arg_check': True,
+                    'constant_arg_check': True,
                     'description': 'Command Injection: User-controlled input is concatenated into shell commands',
                     'fix': 'Use shlex.quote() for shell arguments or pass command arguments as a list to subprocess without shell=True.',
-                    'example_attack': '; rm -rf /',
                     'impact': 'Remote code execution, system compromise'
                 },
                 'hardcoded_credentials': {
@@ -440,12 +441,12 @@ class VulnPathAI:
 
         return list(findings.values())
 
-# Merge regex and AST findings by line; regex wins on conflict.
+# Merge regex and AST findings by line; AST findings take priority for better path analysis.
     def _merge_findings(self, regex_findings, ast_findings):
         merged = {finding['line']: finding for finding in regex_findings}
         for finding in ast_findings:
-            if finding['line'] not in merged:
-                merged[finding['line']] = finding
+            # AST findings are more accurate and enable path analysis; prefer them
+            merged[finding['line']] = finding
         return list(merged.values())
 
 # Return the source/sink/flow/remediation template for a vuln type.
@@ -618,7 +619,7 @@ class VulnPathAI:
                 'remediation': 'Move credentials to environment variables',
                 'attack_chain': 'Code Access → Credential Extraction → Unauthorized Access'
             }
-        if 'command' in vuln_type:
+        if 'command' in vuln_type or 'subprocess' in vuln_type:
             return {
                 'source': 'User Input → Form/URL Parameter',
                 'sink': 'System Command Execution',
@@ -819,7 +820,7 @@ class VulnPathAI:
 
         if 'sql' in vuln_type:
             return attr in sql_sinks
-        if 'command' in vuln_type:
+        if 'command' in vuln_type or 'subprocess' in vuln_type:
             return attr in cmd_sinks or qualname.startswith('subprocess.')
         if 'path' in vuln_type:
             return attr in path_sinks
@@ -841,6 +842,30 @@ class VulnPathAI:
         if line:
             display = '%s at line %s' % (display, line)
         return display
+
+    def _os_system_constant_arg_check(self, node):
+        """Check if os.system() has a constant string argument.
+        Returns True if the argument is a constant string (should NOT be flagged),
+        False if the argument is non-constant (should be flagged).
+        """
+        if not isinstance(node, ast.Call):
+            return False
+        if not isinstance(node.func, ast.Attribute):
+            return False
+        if not isinstance(node.func.value, ast.Name):
+            return False
+        if node.func.value.id != 'os':
+            return False
+        if node.func.attr != 'system':
+            return False
+        # Check if the first argument is a constant string
+        if node.args and len(node.args) > 0:
+            arg = node.args[0]
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                # Constant string argument - should NOT be flagged
+                return True
+        # Non-constant argument - should be flagged
+        return False
 
 # Collect AST nodes whose span overlaps a line range.
     def _nodes_on_lines(self, tree, start_line, end_line):
@@ -1081,6 +1106,15 @@ class VulnPathAI:
 
             key = _norm_key(finding)
             if key in seen:
+                # Replace YAML finding with more accurate AST finding (enables path analysis)
+                # Only replace if AST confidence is >= existing confidence
+                ast_conf = float(finding.get('confidence', 0) or 0)
+                for i, existing in enumerate(combined):
+                    if _norm_key(existing) == key:
+                        existing_conf = float(existing.get('confidence', 0) or 0)
+                        if ast_conf >= existing_conf:
+                            combined[i] = finding
+                        break
                 continue
             seen.add(key)
             combined.append(finding)
@@ -1249,7 +1283,7 @@ class VulnPathAI:
         report_lines.append("")
         report_lines.append("## 📊 Performance Metrics")
         report_lines.append(f"- **Average Confidence:** {metrics.get('average_confidence', 0):.1%}")
-        report_lines.append(f"- **False Positive Rate:** {metrics.get('false_positive_rate', 0):.1%}")
+        report_lines.append(f"- **Estimated uncertainty:** {1 - metrics.get('average_confidence', 0):.1%}")
         report_lines.append(f"- **Scan Time:** {metrics.get('scan_time_seconds', 0):.4f} seconds")
         report_lines.append("")
         report_lines.append("## 🔍 Detailed Findings")
