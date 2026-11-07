@@ -32,14 +32,7 @@ finetune_vuln.py
 model_training.py
 uploads/
 
+# Scan outputs
 results.sarif
-<<<<<<< HEAD
-report.json
 results.json
-=======
->>>>>>> 73cfc5c (fix: package ast_analyzer in pyproject, v1.1.0)
-
-__pycache__/
-*.pyc
-results.sarif
 report.json
