@@ -25,6 +25,19 @@ AST_TYPE_DISPLAY = {
     'insecure_deserialization': 'Insecure Deserialization',
 }
 
+# Human-readable labels for evidence levels shown in reports.
+EVIDENCE_LABELS = {
+    'taint': 'Untrusted input reaches sink',
+    'sink_only': 'Risky API present',
+    'unknown': 'Evidence not determined',
+}
+
+EVIDENCE_NOTES = {
+    'taint': 'Untrusted input appears to reach this sink without sanitization.',
+    'sink_only': 'Risky API present; untrusted input flow not confirmed.',
+    'unknown': 'Evidence could not be determined from available analysis.',
+}
+
 class VulnPathAI:
     LANGUAGE_EXTENSIONS = {
         '.py': 'python',
@@ -468,7 +481,7 @@ class VulnPathAI:
                 'remediation': 'Move credentials to environment variables',
                 'attack_chain': 'Code Access Credential Extraction Unauthorized Access'
             }
-        if 'command' in vuln_type:
+        if 'command' in vuln_type or 'subprocess' in vuln_type:
             return {
                 'source': 'User Input Form URL Parameter',
                 'sink': 'System Command Execution',
@@ -985,9 +998,44 @@ class VulnPathAI:
                     path['attack_chain'] = attack_chain
                 if source and sink:
                     path['flow'] = '%s flows into %s without sanitization' % (source, sink)
+                    path['taint_confirmed'] = True
 
             paths.append(path)
         return paths
+
+    # Classify how strongly a finding is backed by source-to-sink taint evidence.
+    # - "taint":   AST path analysis confirmed source -> sink flow (untrusted input reaches sink)
+    # - "sink_only": risky API/sink matched by pattern/template, but no confirmed taint flow
+    # - "unknown": no usable path evidence
+    # This does not change detection or scoring; it only adds human-readable context.
+    def _evidence_for_path(self, path):
+        if not path:
+            return 'unknown', EVIDENCE_NOTES['unknown']
+        if path.get('taint_confirmed'):
+            return 'taint', EVIDENCE_NOTES['taint']
+        if path.get('sink'):
+            return 'sink_only', EVIDENCE_NOTES['sink_only']
+        return 'unknown', EVIDENCE_NOTES['unknown']
+
+    # Match each vulnerability to its path analysis and annotate evidence_level/evidence_note.
+    def _annotate_evidence(self, vulnerabilities, path_analysis):
+        by_type = {}
+        for path in path_analysis:
+            vt = str(path.get('vulnerability_type', '')).lower()
+            by_type.setdefault(vt, []).append(path)
+        for v in vulnerabilities:
+            vt = str(v.get('vulnerability_type', '')).lower()
+            candidates = by_type.get(vt, [])
+            chosen = None
+            for p in candidates:
+                if p.get('flow'):
+                    chosen = p
+                    break
+            if not chosen and candidates:
+                chosen = candidates[0]
+            level, note = self._evidence_for_path(chosen)
+            v['evidence_level'] = level
+            v['evidence_note'] = note
 
 # Score findings by severity+confidence and return them sorted.
     def prioritize_vulnerabilities(self, vulnerabilities):
@@ -1037,6 +1085,7 @@ class VulnPathAI:
             severity_counts[v['severity']] += 1
 
         path_analysis = self.analyze_paths(code, language, vulnerabilities)
+        self._annotate_evidence(vulnerabilities, path_analysis)
 
         avg_confidence = sum(v.get('confidence', 0.7) for v in vulnerabilities) / len(vulnerabilities) if vulnerabilities else 1.0
         false_positive_rate = 1 - avg_confidence
@@ -1150,6 +1199,8 @@ class VulnPathAI:
             results['path_analysis'] = self.analyze_paths(combined_code, 'python', combined)
         except OSError:
             pass
+        if 'path_analysis' in results:
+            self._annotate_evidence(results['vulnerabilities'], results['path_analysis'])
         return results
 
 # Map a severity label to a SARIF level.
@@ -1233,7 +1284,9 @@ class VulnPathAI:
                     'fix': suggestion,
                     'confidence': vuln.get('confidence'),
                     'vulnerability_type': vuln.get('vulnerability_type'),
-                    'impact': vuln.get('impact')
+                    'impact': vuln.get('impact'),
+                    'evidence_level': vuln.get('evidence_level'),
+                    'evidence_note': vuln.get('evidence_note')
                 }
             })
 
@@ -1352,6 +1405,10 @@ class VulnPathAI:
                     report_lines.append(f"- **Remediation:** {matched_path.get('remediation', 'Unknown')}")
                 else:
                     report_lines.append("- Path analysis available in full report")
+
+                evidence_level = v.get('evidence_level', 'unknown')
+                report_lines.append(f"- **Evidence:** {EVIDENCE_LABELS.get(evidence_level, 'Evidence not determined')}")
+                report_lines.append(f"- **Note:** {v.get('evidence_note', EVIDENCE_NOTES['unknown'])}")
 
                 report_lines.append("")
 
