@@ -44,6 +44,15 @@
   - os\.path\.join\(.*["\'].*\+
   suggestion: Resolve the path and verify it stays inside an allowed base directory.
   impact: Unauthorized file access, data disclosure
+- id: yaml_agent_path_escape
+  name: Agent Path Escape
+  cwe: CWE-22
+  severity: High
+  patterns:
+  - open\s*\([^)]*\+\s*["']
+  - Path\s*\([^)]*\+\s*["']
+  suggestion: Resolve the path and ensure it starts with the workspace root before opening it (for example Path(base).resolve() / name, then is_relative_to(base)).
+  impact: Unauthorized file access outside the workspace, data disclosure
 - id: yaml_sql_injection
   name: Agent SQL Injection
   cwe: CWE-89
