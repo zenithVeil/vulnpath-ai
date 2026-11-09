@@ -48,10 +48,13 @@
   name: Agent Path Escape
   cwe: CWE-22
   severity: High
+  description: Agent tool builds a file path from tool/user-supplied input without resolve() plus a workspace boundary check, so tool-supplied paths can escape via ".." traversal or symlinks.
   patterns:
   - open\s*\([^)]*\+\s*["']
   - Path\s*\([^)]*\+\s*["']
-  suggestion: Resolve the path and ensure it starts with the workspace root before opening it (for example Path(base).resolve() / name, then is_relative_to(base)).
+  - Path\s*\([^)]*\)\s*/\s*[A-Za-z_]
+  - \.(read_text|write_text|read_bytes)\s*\([^)]*\+
+  suggestion: Resolve the workspace root and the joined target (for example base = Path(workspace).resolve(); target = (base / user_path).resolve()), then only read or write after target.is_relative_to(base) confirms it stays inside the workspace.
   impact: Unauthorized file access outside the workspace, data disclosure
 - id: yaml_sql_injection
   name: Agent SQL Injection

@@ -35,6 +35,7 @@ EVIDENCE_LABELS = {
 EVIDENCE_NOTES = {
     'taint': 'Untrusted input appears to reach this sink without sanitization.',
     'sink_only': 'Risky API present; untrusted input flow not confirmed.',
+    'path_traversal': 'Possible path escape via ".." traversal or symlink; confirm resolve() plus a workspace boundary (is_relative_to) check before file access.',
     'unknown': 'Evidence could not be determined from available analysis.',
 }
 
@@ -1036,6 +1037,11 @@ class VulnPathAI:
             level, note = self._evidence_for_path(chosen)
             v['evidence_level'] = level
             v['evidence_note'] = note
+            # Path findings should surface the workspace-boundary / traversal / symlink concern.
+            if 'path' in vt:
+                v['evidence_note'] = EVIDENCE_NOTES.get(
+                    'path_traversal', v.get('evidence_note', EVIDENCE_NOTES['unknown'])
+                )
 
 # Score findings by severity+confidence and return them sorted.
     def prioritize_vulnerabilities(self, vulnerabilities):
