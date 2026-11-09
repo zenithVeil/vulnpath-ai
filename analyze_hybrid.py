@@ -333,10 +333,26 @@ class VulnPathAI:
             r"os\.path\.commonpath\s*\(",
             r"\.startswith\s*\(",
             r"\.is_relative_to\s*\(",
+            r"\.resolve\s*\(",
         )
         start = max(1, line_number - 3)
         preceding_context = ''.join(code_lines[start - 1:line_number - 1])
         return any(re.search(pattern, preceding_context, re.IGNORECASE) for pattern in guard_patterns)
+
+    # True when code near the given line resolves the path and enforces a
+    # workspace boundary (is_relative_to / commonpath / startswith), meaning
+    # a path sink is safely guarded against traversal or symlink escape.
+    def _has_path_boundary_guard(self, code_lines, line_number):
+        start = max(1, line_number - 5)
+        end = min(len(code_lines), line_number)
+        context = ''.join(code_lines[start - 1:end])
+        has_resolve = bool(re.search(r"\.resolve\s*\(", context, re.IGNORECASE))
+        has_boundary = bool(re.search(
+            r"\.is_relative_to\s*\(|os\.path\.commonpath\s*\(|\.startswith\s*\(",
+            context,
+            re.IGNORECASE,
+        ))
+        return has_resolve and has_boundary
 
     # Build a finding dict with all required fields from pattern info.
     def _make_finding(self, vuln_info, vuln_type, line, end_line, lines, confidence, snippet=""):
@@ -1137,6 +1153,23 @@ class VulnPathAI:
         except Exception as exc:
             print(f"⚠️ AST scan skipped for {file_path}: {exc}")
             return results
+
+        # Suppress AST path-traversal findings when the code clearly resolves
+        # the path and enforces a workspace boundary (resolve + is_relative_to
+        # or equivalent), which prevents traversal / symlink escape.
+        try:
+            with open(file_path, 'r', encoding='utf-8') as _sf:
+                _src_lines = _sf.readlines()
+        except OSError:
+            _src_lines = []
+        _kept_ast = []
+        for _af in ast_findings:
+            if str(_af.get('vulnerability_type', '')).lower() == 'path_traversal':
+                _af_line = int(_af.get('line', 1) or 1)
+                if self._has_path_boundary_guard(_src_lines, _af_line):
+                    continue
+            _kept_ast.append(_af)
+        ast_findings = _kept_ast
 
         def _norm_key(f):
             return (
