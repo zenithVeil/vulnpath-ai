@@ -1,5 +1,9 @@
 ﻿# 🛡️ VulnPath-AI
 
+<p align="center">
+  <img src="assets/logo.png" alt="VulnPath-AI" width="420"/>
+</p>
+
 [![Python](https://img.shields.io/badge/Python-3.6+-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-Verified-blue)](test_results.json)
