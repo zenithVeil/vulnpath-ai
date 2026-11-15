@@ -35,6 +35,7 @@ EVIDENCE_LABELS = {
 EVIDENCE_NOTES = {
     'taint': 'Untrusted input appears to reach this sink without sanitization.',
     'sink_only': 'Risky API present; untrusted input flow not confirmed.',
+    'hardcoded_credentials': 'Credential-like value assigned in source code; not an untrusted-input taint flow. Risk: secret in source code.',
     'path_traversal': 'Possible path escape via ".." traversal or symlink; confirm resolve() plus a workspace boundary (is_relative_to) check before file access.',
     'unknown': 'Evidence could not be determined from available analysis.',
 }
@@ -562,6 +563,9 @@ class VulnPathAI:
         end = int(f.get('end_line', start))
         return (start, end if end >= start else start)
 
+    # Path-related CWEs (CWE-22 family) treated as the same issue when deduplicating.
+    PATH_CWE_FAMILY = ('CWE-22', 'CWE-23', 'CWE-36', 'CWE-59', 'CWE-73')
+
     # Deduplicate findings that report the same issue:
     # same CWE (or vulnerability class) on the same or overlapping line.
     # Keeps the finding with: better path analysis / more complete fields,
@@ -574,6 +578,8 @@ class VulnPathAI:
         by_cwe = {}
         for f in findings:
             cwe = str(f.get('cwe_id', '')).upper().strip()
+            if cwe in self.PATH_CWE_FAMILY:
+                cwe = 'CWE-22'  # path-related CWEs are one dedupe group
             by_cwe.setdefault(cwe, []).append(f)
 
         deduped = []
@@ -624,7 +630,12 @@ class VulnPathAI:
             s += int(f.get('confidence', 0) * 100)
             # Prefer built-in over YAML (Yaml prefix in vulnerability_type)
             vtype = str(f.get('vulnerability_type', ''))
-            if not vtype.lower().startswith('yaml'):
+            is_yaml = vtype.lower().startswith('yaml')
+            if str(f.get('cwe_id', '')).upper().strip() in self.PATH_CWE_FAMILY:
+                # Path findings: the YAML rule title (e.g. Agent Path Escape) is more specific.
+                if is_yaml:
+                    s += 50
+            elif not is_yaml:
                 s += 50
             # Richer description
             if f.get('description') and len(f.get('description', '')) > 30:
@@ -1042,6 +1053,11 @@ class VulnPathAI:
             by_type.setdefault(vt, []).append(path)
         for v in vulnerabilities:
             vt = str(v.get('vulnerability_type', '')).lower()
+            # Hardcoded credentials: use credential-specific evidence, not taint/sink notes.
+            if vt == 'hardcoded credentials':
+                v['evidence_level'] = 'hardcoded_credentials'
+                v['evidence_note'] = EVIDENCE_NOTES['hardcoded_credentials']
+                continue
             candidates = by_type.get(vt, [])
             chosen = None
             for p in candidates:
@@ -1207,6 +1223,7 @@ class VulnPathAI:
             seen.add(key)
             combined.append(finding)
 
+        combined = self._dedup_findings(combined)
         combined = self.prioritize_vulnerabilities(combined)
 
         counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
