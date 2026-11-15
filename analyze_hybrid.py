@@ -27,9 +27,10 @@ AST_TYPE_DISPLAY = {
 
 # Human-readable labels for evidence levels shown in reports.
 EVIDENCE_LABELS = {
-    'taint': 'Untrusted input reaches sink',
-    'sink_only': 'Risky API present',
-    'unknown': 'Evidence not determined',
+    'taint': 'Source-to-sink confirmed',
+    'sink_only': 'Pattern detected (flow not confirmed)',
+    'hardcoded_credentials': 'Hardcoded credential in source',
+    'unknown': 'Flow not confirmed',
 }
 
 EVIDENCE_NOTES = {
@@ -1421,11 +1422,13 @@ class VulnPathAI:
                     report_lines.append("```")
                     report_lines.append("")
 
-                report_lines.append("#### 💥 Example Attack")
-                report_lines.append("```")
-                report_lines.append(f"{v.get('example_attack', 'N/A')}")
-                report_lines.append("```")
-                report_lines.append("")
+                example_attack = v.get('example_attack', 'N/A')
+                if example_attack and example_attack != 'N/A':
+                    report_lines.append("#### 💥 Example Attack")
+                    report_lines.append("```")
+                    report_lines.append(example_attack)
+                    report_lines.append("```")
+                    report_lines.append("")
                 report_lines.append("#### 💰 Business Impact")
                 report_lines.append(f"{v.get('impact', 'N/A')}")
                 report_lines.append("")
@@ -1486,8 +1489,8 @@ class VulnPathAI:
         report_lines.append("")
         report_lines.append("## 📈 False Positive Analysis")
         report_lines.append(f"- **Total Findings:** {len(vulns)}")
-        report_lines.append(f"- **High Confidence (>90%):** {sum(1 for v in vulns if v.get('confidence', 0) > 0.9)}")
-        report_lines.append(f"- **Medium Confidence (70-90%):** {sum(1 for v in vulns if 0.7 <= v.get('confidence', 0) <= 0.9)}")
+        report_lines.append(f"- **High Confidence (>=90%):** {sum(1 for v in vulns if v.get('confidence', 0) >= 0.9)}")
+        report_lines.append(f"- **Medium Confidence (70-90%):** {sum(1 for v in vulns if 0.7 <= v.get('confidence', 0) < 0.9)}")
         report_lines.append(f"- **Low Confidence (<70%):** {sum(1 for v in vulns if v.get('confidence', 0) < 0.7)}")
         report_lines.append("")
         report_lines.append("---")
