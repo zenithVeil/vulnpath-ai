@@ -1,11 +1,11 @@
 {
-  "test_date": "2026-11-16 01:10:46",
+  "test_date": "2026-11-17 00:05:14",
   "results": {
     "true_positives": 21,
     "false_positives": 0,
     "true_negatives": 19,
     "false_negatives": 0,
-    "total_time": 0.09557271003723145,
+    "total_time": 0.13888883590698242,
     "test_count": 40,
     "confidence_threshold": 0.7,
     "precision": 1.0,
@@ -25,7 +25,7 @@
         "Command Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.008420228958129883
+      "time_seconds": 0.010479927062988281
     },
     {
       "file": "samples/vulnerable/agent/agent_eval_tool.py",
@@ -38,7 +38,7 @@
         "Use of eval/exec"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0008552074432373047
+      "time_seconds": 0.0026688575744628906
     },
     {
       "file": "samples/vulnerable/agent/agent_path_escape.py",
@@ -51,7 +51,7 @@
         "Yaml Agent Path Escape"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0030012130737304688
+      "time_seconds": 0.006704568862915039
     },
     {
       "file": "samples/vulnerable/agent/agent_path_join_no_resolve.py",
@@ -64,7 +64,7 @@
         "Yaml Agent Path Escape"
       ],
       "low_confidence": [],
-      "time_seconds": 0.002004861831665039
+      "time_seconds": 0.002500772476196289
     },
     {
       "file": "samples/vulnerable/agent/agent_path_symlink_unsafe.py",
@@ -77,7 +77,7 @@
         "Yaml Agent Path Escape"
       ],
       "low_confidence": [],
-      "time_seconds": 0.00200653076171875
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/agent/agent_secret_in_code.py",
@@ -90,7 +90,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.001995086669921875
+      "time_seconds": 0.008773565292358398
     },
     {
       "file": "samples/vulnerable/agent/agent_ssrf_fetch.py",
@@ -103,7 +103,7 @@
         "Yaml Ssrf"
       ],
       "low_confidence": [],
-      "time_seconds": 0.002001523971557617
+      "time_seconds": 0.0020101070404052734
     },
     {
       "file": "samples/vulnerable/agent/agent_unsafe_pickle.py",
@@ -116,7 +116,7 @@
         "Insecure Deserialization"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0025844573974609375
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/command_os_popen.py",
@@ -130,7 +130,7 @@
         "Yaml Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0020084381103515625
+      "time_seconds": 0.005678653717041016
     },
     {
       "file": "samples/vulnerable/command_subprocess_shell.py",
@@ -144,7 +144,7 @@
         "Yaml Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0019991397857666016
+      "time_seconds": 0.0030150413513183594
     },
     {
       "file": "samples/vulnerable/hardcoded_api_keys.js",
@@ -157,7 +157,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0031728744506835938
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/hardcoded_password.py",
@@ -170,7 +170,7 @@
         "Hardcoded Credentials"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0018126964569091797
     },
     {
       "file": "samples/vulnerable/path_fstring_open.py",
@@ -183,7 +183,7 @@
         "Path Traversal"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0028333663940429688
     },
     {
       "file": "samples/vulnerable/path_open_concat.py",
@@ -210,7 +210,7 @@
         "SQL Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.010661602020263672
+      "time_seconds": 0.008636236190795898
     },
     {
       "file": "samples/vulnerable/sqli_percent_format.py",
@@ -223,7 +223,7 @@
         "SQL Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.001333475112915039
+      "time_seconds": 0.006659746170043945
     },
     {
       "file": "samples/vulnerable/sqli_string_concat.py",
@@ -236,7 +236,7 @@
         "SQL Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.004029035568237305
+      "time_seconds": 0.0020084381103515625
     },
     {
       "file": "samples/vulnerable/tool_arg_shell_command.py",
@@ -250,7 +250,7 @@
         "Command Injection"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0037581920623779297
     },
     {
       "file": "samples/vulnerable/vulnerable_sample.py",
@@ -267,7 +267,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.0075490474700927734
+      "time_seconds": 0.004014730453491211
     },
     {
       "file": "samples/vulnerable/xss_innerhtml.js",
@@ -280,7 +280,7 @@
         "Xss"
       ],
       "low_confidence": [],
-      "time_seconds": 0.0016918182373046875
+      "time_seconds": 0.0
     },
     {
       "file": "samples/vulnerable/xss_python_return.py",
@@ -293,7 +293,7 @@
         "Xss"
       ],
       "low_confidence": [],
-      "time_seconds": 0.002007722854614258
+      "time_seconds": 0.007802724838256836
     },
     {
       "file": "samples/safe/agent/agent_env_secrets.py",
@@ -304,7 +304,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0016045570373535156
+      "time_seconds": 0.003458738327026367
     },
     {
       "file": "samples/safe/agent/agent_no_eval.py",
@@ -315,7 +315,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0013897418975830078
     },
     {
       "file": "samples/safe/agent/agent_path_symlink_safe.py",
@@ -326,7 +326,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.003730297088623047
     },
     {
       "file": "samples/safe/agent/agent_path_workspace_boundary.py",
@@ -337,7 +337,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.003750324249267578
     },
     {
       "file": "samples/safe/agent/agent_path_workspace_check.py",
@@ -348,7 +348,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.003499269485473633
     },
     {
       "file": "samples/safe/agent/agent_safe_json.py",
@@ -370,7 +370,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.013797283172607422
+      "time_seconds": 0.005457639694213867
     },
     {
       "file": "samples/safe/agent/agent_url_allowlist.py",
@@ -381,7 +381,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.002529144287109375
+      "time_seconds": 0.004817962646484375
     },
     {
       "file": "samples/safe/constant_shell_command.py",
@@ -392,7 +392,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.002702951431274414
+      "time_seconds": 0.0030853748321533203
     },
     {
       "file": "samples/safe/env_based_secrets.js",
@@ -414,7 +414,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.002167224884033203
     },
     {
       "file": "samples/safe/escaped_html.js",
@@ -425,7 +425,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0012488365173339844
     },
     {
       "file": "samples/safe/escaped_html.py",
@@ -436,7 +436,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.0025246143341064453
     },
     {
       "file": "samples/safe/parameterized_sql.py",
@@ -447,7 +447,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.004017829895019531
     },
     {
       "file": "samples/safe/parameterized_sql_bound.py",
@@ -458,7 +458,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.011689186096191406
+      "time_seconds": 0.005448818206787109
     },
     {
       "file": "samples/safe/parameterized_sql_vs_input.py",
@@ -469,7 +469,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.002554178237915039
+      "time_seconds": 0.004952430725097656
     },
     {
       "file": "samples/safe/safe_path_join.py",
@@ -482,7 +482,7 @@
       "low_confidence": [
         "Path Traversal"
       ],
-      "time_seconds": 0.0033731460571289062
+      "time_seconds": 0.0017783641815185547
     },
     {
       "file": "samples/safe/safe_subprocess.py",
@@ -493,7 +493,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.002007722854614258
     },
     {
       "file": "samples/safe/secure_sample.py",
@@ -504,7 +504,7 @@
       "low_confidence_findings": 0,
       "vulnerabilities": [],
       "low_confidence": [],
-      "time_seconds": 0.0
+      "time_seconds": 0.006196022033691406
     }
   ],
   "grade": "Excellent"

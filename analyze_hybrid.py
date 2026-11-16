@@ -1070,6 +1070,11 @@ class VulnPathAI:
             level, note = self._evidence_for_path(chosen)
             v['evidence_level'] = level
             v['evidence_note'] = note
+            # Issue 1: SSRF / yaml ssrf - when path taint is not confirmed, set sink_only with specific note
+            if 'ssrf' in vt.lower():
+                if v['evidence_level'] != 'taint':
+                    v['evidence_level'] = 'sink_only'
+                    v['evidence_note'] = 'Risky URL fetch pattern; untrusted URL flow not confirmed.'
             # Path findings should surface the workspace-boundary / traversal / symlink concern.
             if 'path' in vt:
                 v['evidence_note'] = EVIDENCE_NOTES.get(
