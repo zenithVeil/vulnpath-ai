@@ -1,9 +1,11 @@
-"""Intentionally vulnerable hardcoded credentials in Python."""
+"""Intentionally vulnerable hardcoded credentials in Python.
+Synthetic fixtures for scanner demos only — not real credentials.
+"""
 
-password = "admin123!"
-api_key = "sk_live_example_hardcoded_key"
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example"
-secret = "production-signing-secret"
+password = "EXAMPLE_ONLY_not_a_real_password"
+api_key = "sk_test_fake_key_for_fixture_only"
+token = "fake.jwt.token.for.tests.only"
+secret = "example-only-signing-secret-not-real"
 
 
 def connect():
