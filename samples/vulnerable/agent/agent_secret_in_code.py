@@ -1,7 +1,7 @@
-# Vulnerable: hardcoded OpenAI/Anthropic/API keys style secrets
-OPENAI_API_KEY = "sk-1234567890abcdef"
-ANTHROPIC_API_KEY = "sk-ant-1234567890abcdef"
-API_KEY = "my-secret-api-key-12345"
+# Vulnerable fixture: hardcoded API-key style secrets (synthetic only)
+OPENAI_API_KEY = "sk-test-fake-openai-key-for-fixture-only"
+ANTHROPIC_API_KEY = "sk-ant-test-fake-key-for-fixture-only"
+API_KEY = "example-only-not-a-real-api-key"
 
 
 def get_client():
