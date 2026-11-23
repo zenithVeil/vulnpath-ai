@@ -1,10 +1,11 @@
 // Intentionally vulnerable hardcoded secrets (JavaScript object literals).
+// Synthetic fixtures for scanner demos only — not real credentials.
 
 const config = {
-  apiKey: "sk_test_hardcoded_demo_key",
-  password: "SuperSecret123!",
-  jwtSecret: "hardcoded-jwt-signing-secret",
-  databasePassword: "db-pass-should-not-be-here",
+  apiKey: "example-only-not-a-real-api-key",
+  password: "EXAMPLE_ONLY_not_a_real_password",
+  jwtSecret: "example-only-jwt-value-for-tests",
+  databasePassword: "example-only-db-value-for-tests",
 };
 
 module.exports = config;
