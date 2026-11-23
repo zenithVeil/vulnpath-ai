@@ -4,8 +4,8 @@ import os
 import sqlite3
 
 # CWE-798: Hardcoded Sensitive Credential
-API_KEY = "AKIAIOSFODNN7EXAMPLE_SECRET_KEY"
-SECRET_KEY = "super_secret_production_key_12345"
+API_KEY = "example-only-not-a-real-api-key"
+SECRET_KEY = "example-only-not-a-real-secret"
 
 
 def fetch_user_record(username: str):
